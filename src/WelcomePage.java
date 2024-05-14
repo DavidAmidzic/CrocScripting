@@ -49,8 +49,8 @@ public class WelcomePage extends JFrame {
                     "<html>" +
                             "<div style='text-align: center;'>" +
                             "  <h1>Welcome</h1>" +
-                                "<p>Our project aims to develop a powerful and user-friendly script generator for Cisco networks that allows users to create network configurations quickly and easily. With an intuitive graphical user interface, users can enter network parameters and generate the desired configurations.</p>" +
-                                "<p>Our script generator offers a variety of features aligned with the last three years of network engineering curriculum. From basic configurations such as DHCP and static IP addresses to more advanced network elements such as VLANs, ACLs and routing protocols, our tool covers all aspects covered in class.</p>" +
+                                "<br><p>Our project aims to develop a powerful and user-friendly script generator for Cisco networks that allows users to create network configurations quickly and easily. With an intuitive graphical user interface, users can enter network parameters and generate the desired configurations.</p> <br>" +
+                                "<p>Our script generator offers a variety of features aligned with the last three years of network engineering curriculum. From basic configurations such as DHCP and static IP addresses to more advanced network elements such as VLANs, ACLs and routing protocols, our tool covers all aspects covered in class.</p> <br>" +
                                 "<p>To ensure that our application is easily accessible and allows for seamless execution, we have chosen to host it on a Raspberry Pi. The Raspberry Pi serves as the central platform that enables the execution of our Java application.</p>" +
                             "</div>" +
                         "</html>");
@@ -69,7 +69,7 @@ public class WelcomePage extends JFrame {
         routerButton.setPreferredSize(new Dimension(150, 50));
         routerButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                //TODO
+                SwingUtilities.invokeLater(() -> new Router());
             }
         });
         buttonsPanel.add(routerButton);
@@ -79,7 +79,7 @@ public class WelcomePage extends JFrame {
         switchButton.setPreferredSize(new Dimension(150, 50)); // Increased button size
         switchButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                //TODO
+                SwingUtilities.invokeLater(() -> new Switch());
             }
         });
         buttonsPanel.add(switchButton);
