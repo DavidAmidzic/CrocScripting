@@ -183,6 +183,7 @@ public class Router extends JFrame {
             repaint();
         });
 
+
         // Action listeners to update the overview area
         ripVersionField.addActionListener(e -> {
             overview.append("RIP Version: " + ripVersionField.getText() + "\n");

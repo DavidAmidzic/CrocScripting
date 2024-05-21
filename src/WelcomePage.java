@@ -92,6 +92,7 @@ public class WelcomePage extends JFrame {
     }
     public static void main(String[] args) {
         System.out.println("Welcome to Croc-Scripting!");
+        System.out.println("Loading...");
         SwingUtilities.invokeLater(() -> new WelcomePage());
     }
 }
