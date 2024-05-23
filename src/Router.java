@@ -5,15 +5,18 @@ import java.awt.event.*;
 public class Router extends JFrame {
 
     /* Checkbox */
-
     private JCheckBox ospfCheckBox;
     private JCheckBox ripCheckBox;
     private JCheckBox dhcpCheckBox;
     private JCheckBox dhcpHelperCheckBox;
     private JCheckBox hsrpCheckBox;
     private JCheckBox hsrpPreemptionCheckBox;
-    private JCheckBox aclCheckBox;
-
+    private JCheckBox basicCheckBox;
+    private JCheckBox accessCheckBox;
+    private JCheckBox sshCheckBox;
+    private JCheckBox natCheckBox;
+    private JCheckBox staticNatCheckBox;
+    private JCheckBox dynamicNatCheckBox;
 
     /* OSPF */
 
@@ -46,14 +49,53 @@ public class Router extends JFrame {
     private JTextField hsrpVersionField;
     private JTextField hsrpIpPriorityField;
 
+    /* Basic Configuration */
+
+    private JTextField hostnameField;
+    private JTextField bannerField;
+    private JCheckBox noIpDomainLookupCheckBox;
+    private JCheckBox ipCheckBox;
+    private JCheckBox servicePasswordEncryptionCheckBox;
+    private JTextField enablePasswordField;
+    private JTextField interfaceField;
+    private JTextField ipAddressField;
+
+    /* Access */
+    private JTextField accessLineField;
+    private JTextField accessPasswordField;
+    private JCheckBox accessLoginCheckBox;
+
+    /* SSH */
+    private JTextField sshDomainNameField;
+    private JTextField sshKeyLengthField;
+    private JTextField sshUsernameField;
+    private JTextField sshPasswordField;
+    private JTextField sshVtyLineField;
+
+    /* NAT */
+    private JTextField natInterfaceField;
+    private JTextField directionField;
+    private JTextField natPrivateAddressField;
+    private JTextField natPublicAddressField;
+    private JTextField natPoolNameField;
+    private JTextField dynamicStartIpField;
+    private JTextField dynamicEndIpField;
+    private JTextField natNetmaskField;
+    private JTextField natAccessListField;
+    private JTextField natPermitDenyField;
+    private JTextField natNetworkForAccessField;
+    private JTextField natWildcardMaskField;
+
     /* JPanels */
     private JTextArea overview;
     private JPanel ospfPanel;
     private JPanel ripPanel;
     private JPanel dhcpPanel;
     private JPanel hsrpPanel;
-    private JPanel aclPanel;
-
+    private JPanel basicPanel;
+    private JPanel accessPanel;
+    private JPanel sshPanel;
+    private JPanel natPanel;
 
 
     public Router() {
@@ -82,27 +124,37 @@ public class Router extends JFrame {
         hsrpPanel = new JPanel();
         hsrpConfiguration();
 
+        // Basic-Config
+        basicPanel = new JPanel();
+        basicConfiguration();
+
+        // Access
+        accessPanel = new JPanel();
+        accessConfiguration();
+
         // ACL's
 
-        // Basic-Config
-
         // SSH
+        sshPanel = new JPanel();
+        sshConfiguration();
 
         // NAT
+        natPanel = new JPanel();
+        //natConfiguration();
 
         // PAT
-
-        // IPv6
-
-        // static routes
 
         // cdp run, no lldp run
 
         // Add panels to the configuration panel
+        configPanel.add(basicPanel);
+        configPanel.add(accessPanel);
         configPanel.add(ospfPanel);
         configPanel.add(ripPanel);
         configPanel.add(dhcpPanel);
         configPanel.add(hsrpPanel);
+        configPanel.add(sshPanel);
+        configPanel.add(natPanel);
 
         // Make configPanel scrollable
         JScrollPane scrollPane = new JScrollPane(configPanel);
@@ -129,6 +181,292 @@ public class Router extends JFrame {
         add(new JScrollPane(overview), BorderLayout.CENTER);
 
         setVisible(true);
+    }
+
+
+    private void sshConfiguration() {
+        sshPanel = new JPanel();
+        sshPanel.setLayout(new BoxLayout(sshPanel, BoxLayout.Y_AXIS));
+        sshPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        sshCheckBox = new JCheckBox("SSH");
+        sshPanel.add(sshCheckBox);
+
+        // Fields and Labels (initially hidden)
+        JLabel domainNameLabel = new JLabel("Domain Name:");
+        sshDomainNameField = new JTextField(20);
+        sshDomainNameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshDomainNameField.getPreferredSize().height));
+        domainNameLabel.setVisible(false);
+        sshDomainNameField.setVisible(false);
+        sshPanel.add(domainNameLabel);
+        sshPanel.add(sshDomainNameField);
+
+        JLabel keyLengthLabel = new JLabel("Key Length:");
+        sshKeyLengthField = new JTextField(20);
+        sshKeyLengthField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshKeyLengthField.getPreferredSize().height));
+        keyLengthLabel.setVisible(false);
+        sshKeyLengthField.setVisible(false);
+        sshPanel.add(keyLengthLabel);
+        sshPanel.add(sshKeyLengthField);
+
+        JLabel usernameLabel = new JLabel("Username:");
+        sshUsernameField = new JTextField(20);
+        sshUsernameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshUsernameField.getPreferredSize().height));
+        usernameLabel.setVisible(false);
+        sshUsernameField.setVisible(false);
+        sshPanel.add(usernameLabel);
+        sshPanel.add(sshUsernameField);
+
+        JLabel sshPasswordLabel = new JLabel("Password:");
+        sshPasswordField = new JTextField(20);
+        sshPasswordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshPasswordField.getPreferredSize().height));
+        sshPasswordLabel.setVisible(false);
+        sshPasswordField.setVisible(false);
+        sshPanel.add(sshPasswordLabel);
+        sshPanel.add(sshPasswordField);
+
+        JLabel vtyLineLabel = new JLabel("VTY Line:");
+        sshVtyLineField = new JTextField(20);
+        sshVtyLineField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshVtyLineField.getPreferredSize().height));
+        vtyLineLabel.setVisible(false);
+        sshVtyLineField.setVisible(false);
+        sshPanel.add(vtyLineLabel);
+        sshPanel.add(sshVtyLineField);
+
+        sshCheckBox.addActionListener(e -> {
+            boolean selected = sshCheckBox.isSelected();
+            domainNameLabel.setVisible(selected);
+            sshDomainNameField.setVisible(selected);
+            keyLengthLabel.setVisible(selected);
+            sshKeyLengthField.setVisible(selected);
+            usernameLabel.setVisible(selected);
+            sshUsernameField.setVisible(selected);
+            sshPasswordLabel.setVisible(selected);
+            sshPasswordField.setVisible(selected);
+            vtyLineLabel.setVisible(selected);
+            sshVtyLineField.setVisible(selected);
+            revalidate();
+            repaint();
+        });
+
+        // Action listeners to update the overview area
+        sshDomainNameField.addActionListener(e -> {
+            overview.append("Domain Name: " + sshDomainNameField.getText() + "\n");
+            sshDomainNameField.setText("");
+        });
+
+        sshKeyLengthField.addActionListener(e -> {
+            overview.append("Key Length: " + sshKeyLengthField.getText() + "\n");
+            sshKeyLengthField.setText("");
+        });
+
+        sshUsernameField.addActionListener(e -> {
+            overview.append("Username: " + sshUsernameField.getText() + "\n");
+            sshUsernameField.setText("");
+        });
+
+        sshPasswordField.addActionListener(e -> {
+            overview.append("Password: " + sshPasswordField.getText() + "\n");
+            sshPasswordField.setText("");
+        });
+
+        sshVtyLineField.addActionListener(e -> {
+            overview.append("VTY Line: " + sshVtyLineField.getText() + "\n");
+            sshVtyLineField.setText("");
+        });
+    }
+
+    private void basicConfiguration() {
+        basicPanel.setLayout(new BoxLayout(basicPanel, BoxLayout.Y_AXIS));
+        basicPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        basicCheckBox = new JCheckBox("Basic Configuration");
+        basicPanel.add(basicCheckBox);
+
+        // Fields and Labels (initially hidden)
+        JLabel hostnameLabel = new JLabel("Hostname:");
+        hostnameField = new JTextField(20);
+        hostnameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, hostnameField.getPreferredSize().height));
+        hostnameLabel.setVisible(false);
+        hostnameField.setVisible(false);
+        basicPanel.add(hostnameLabel);
+        basicPanel.add(hostnameField);
+
+        JLabel bannerLabel = new JLabel("Banner:");
+        bannerField = new JTextField(20);
+        bannerField.setMaximumSize(new Dimension(Integer.MAX_VALUE, bannerField.getPreferredSize().height));
+        bannerLabel.setVisible(false);
+        bannerField.setVisible(false);
+        basicPanel.add(bannerLabel);
+        basicPanel.add(bannerField);
+
+        JLabel enablePasswordLabel = new JLabel("Enable Password:");
+        enablePasswordField = new JTextField(20);
+        enablePasswordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, enablePasswordField.getPreferredSize().height));
+        enablePasswordLabel.setVisible(false);
+        enablePasswordField.setVisible(false);
+        basicPanel.add(enablePasswordLabel);
+        basicPanel.add(enablePasswordField);
+
+        servicePasswordEncryptionCheckBox = new JCheckBox("Service Password-Encryption");
+        servicePasswordEncryptionCheckBox.setVisible(false);
+        basicPanel.add(servicePasswordEncryptionCheckBox);
+
+        noIpDomainLookupCheckBox = new JCheckBox("No IP Domain Lookup");
+        noIpDomainLookupCheckBox.setVisible(false);
+        basicPanel.add(noIpDomainLookupCheckBox);
+
+        // IP Configuration
+        ipCheckBox = new JCheckBox("IP Configuration");
+        ipCheckBox.setVisible(false);
+        basicPanel.add(ipCheckBox);
+
+        JLabel interfaceLabel = new JLabel("Interface:");
+        interfaceField = new JTextField(20);
+        interfaceField.setMaximumSize(new Dimension(Integer.MAX_VALUE, interfaceField.getPreferredSize().height));
+        interfaceLabel.setVisible(false);
+        interfaceField.setVisible(false);
+        basicPanel.add(interfaceLabel);
+        basicPanel.add(interfaceField);
+
+        JLabel ipAddressLabel = new JLabel("IP Address:");
+        ipAddressField = new JTextField(20);
+        ipAddressField.setMaximumSize(new Dimension(Integer.MAX_VALUE, ipAddressField.getPreferredSize().height));
+        ipAddressLabel.setVisible(false);
+        ipAddressField.setVisible(false);
+        basicPanel.add(ipAddressLabel);
+        basicPanel.add(ipAddressField);
+
+        basicCheckBox.addActionListener(e -> {
+            boolean selected = basicCheckBox.isSelected();
+            hostnameLabel.setVisible(selected);
+            hostnameField.setVisible(selected);
+            bannerLabel.setVisible(selected);
+            bannerField.setVisible(selected);
+            enablePasswordLabel.setVisible(selected);
+            enablePasswordField.setVisible(selected);
+            servicePasswordEncryptionCheckBox.setVisible(selected);
+            noIpDomainLookupCheckBox.setVisible(selected);
+            ipCheckBox.setVisible(selected);
+            if (!selected) {
+                // Hide IP configuration fields if the basic configuration is deselected
+                interfaceLabel.setVisible(false);
+                interfaceField.setVisible(false);
+                ipAddressLabel.setVisible(false);
+                ipAddressField.setVisible(false);
+                ipCheckBox.setSelected(false);
+            }
+            revalidate();
+            repaint();
+        });
+
+        ipCheckBox.addActionListener(e -> {
+            boolean selected = ipCheckBox.isSelected();
+            interfaceLabel.setVisible(selected);
+            interfaceField.setVisible(selected);
+            ipAddressLabel.setVisible(selected);
+            ipAddressField.setVisible(selected);
+            revalidate();
+            repaint();
+        });
+
+        // Action listeners to update the overview area
+        hostnameField.addActionListener(e -> {
+            overview.append("Hostname: " + hostnameField.getText() + "\n");
+            hostnameField.setText("");
+        });
+
+        bannerField.addActionListener(e -> {
+            overview.append("Banner: " + bannerField.getText() + "\n");
+            bannerField.setText("");
+        });
+
+        enablePasswordField.addActionListener(e -> {
+            overview.append("Enable Password: " + enablePasswordField.getText() + "\n");
+            enablePasswordField.setText("");
+        });
+
+        servicePasswordEncryptionCheckBox.addActionListener(e -> {
+            if (servicePasswordEncryptionCheckBox.isSelected()) {
+                overview.append("Service Password-Encryption: Enabled\n");
+            } else {
+                overview.append("Service Password-Encryption: Disabled\n");
+            }
+        });
+
+        noIpDomainLookupCheckBox.addActionListener(e -> {
+            if (noIpDomainLookupCheckBox.isSelected()) {
+                overview.append("No IP Domain Lookup: Enabled\n");
+            } else {
+                overview.append("No IP Domain Lookup: Disabled\n");
+            }
+        });
+
+        interfaceField.addActionListener(e -> {
+            overview.append("Interface: " + interfaceField.getText() + "\n");
+            interfaceField.setText("");
+        });
+
+        ipAddressField.addActionListener(e -> {
+            overview.append("IP Address: " + ipAddressField.getText() + "\n");
+            ipAddressField.setText("");
+        });
+    }
+
+    private void accessConfiguration() {
+        accessPanel.setLayout(new BoxLayout(accessPanel, BoxLayout.Y_AXIS));
+        accessPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        accessCheckBox = new JCheckBox("Access Configuration");
+        accessPanel.add(accessCheckBox);
+
+        // Fields and Labels (initially hidden)
+        JLabel lineLabel = new JLabel("Line:");
+        accessLineField = new JTextField(20);
+        accessLineField.setMaximumSize(new Dimension(Integer.MAX_VALUE, accessLineField.getPreferredSize().height));
+        lineLabel.setVisible(false);
+        accessLineField.setVisible(false);
+        accessPanel.add(lineLabel);
+        accessPanel.add(accessLineField);
+
+        JLabel passwordLabel = new JLabel("Password:");
+        accessPasswordField = new JTextField(20);
+        accessPasswordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, accessPasswordField.getPreferredSize().height));
+        passwordLabel.setVisible(false);
+        accessPasswordField.setVisible(false);
+        accessPanel.add(passwordLabel);
+        accessPanel.add(accessPasswordField);
+
+        accessLoginCheckBox = new JCheckBox("Login");
+        accessLoginCheckBox.setVisible(false);
+        accessPanel.add(accessLoginCheckBox);
+
+        accessCheckBox.addActionListener(e -> {
+            boolean selected = accessCheckBox.isSelected();
+            lineLabel.setVisible(selected);
+            accessLineField.setVisible(selected);
+            passwordLabel.setVisible(selected);
+            accessPasswordField.setVisible(selected);
+            accessLoginCheckBox.setVisible(selected);
+            revalidate();
+            repaint();
+        });
+
+        // Action listeners to update the overview area
+        accessLineField.addActionListener(e -> {
+            overview.append("Line: " + accessLineField.getText() + "\n");
+            accessLineField.setText("");
+        });
+
+        accessPasswordField.addActionListener(e -> {
+            overview.append("Password: " + accessPasswordField.getText() + "\n");
+            accessPasswordField.setText("");
+        });
+
+        accessLoginCheckBox.addActionListener(e -> {
+            if (accessLoginCheckBox.isSelected()) {
+                overview.append("Login: Enabled\n");
+            } else {
+                overview.append("Login: Disabled\n");
+            }
+        });
     }
 
     private void hsrpConfiguration() {
