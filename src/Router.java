@@ -4,6 +4,9 @@ import java.awt.event.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class Router extends JFrame {
 
@@ -223,7 +226,7 @@ public class Router extends JFrame {
         // Access Configuration
         String line = accessLineField.getText();
         if (!line.isEmpty() && overview.getText().contains("Line: " + line)) {
-            commands.append("line ").append(line).append("\n");
+            commands.append("\nline ").append(line).append("\n");
         }
 
         String password = accessPasswordField.getText();
@@ -235,29 +238,10 @@ public class Router extends JFrame {
             commands.append("login\n");
         }
 
-        // OSPF Configuration
-//        String ospfProcessId = ospfProcessIdField.getText();
-//        if (!ospfProcessId.isEmpty() && overview.getText().contains("OSPF Process ID: " + ospfProcessId)) {
-//            commands.append("router ospf ").append(ospfProcessId).append("\n");
-//        }
-//
-//        String ospfNetwork = ospfNetworkField.getText();
-//        String ospfWildcard = ospfWildcardField.getText();
-//        String ospfArea = ospfAreaField.getText();
-//        if (!ospfNetwork.isEmpty() && !ospfWildcard.isEmpty() && !ospfArea.isEmpty() &&
-//                overview.getText().contains("Network: " + ospfNetwork) &&
-//                overview.getText().contains("Wildcard: " + ospfWildcard) &&
-//                overview.getText().contains("Area: " + ospfArea)) {
-//            commands.append("network ").append(ospfNetwork).append(" ").append(ospfWildcard)
-//                    .append(" area ").append(ospfArea).append("\n");
-//        }
-//
-//        if (ospfCheckBox.isSelected()) {
-//            commands.append("router ospf ").append(ospfProcessId).append("\n");
-//        }
+        //OSPF Configuration
         String ospfGroup = ospfGroupField.getText();
         if (!ospfGroup.isEmpty() && overview.getText().contains("OSPF Group: " + ospfGroup)) {
-            commands.append("router ospf ").append(ospfGroup).append("\n");
+            commands.append("\nrouter ospf ").append(ospfGroup).append("\n");
 
             String ospfRouterId = ospfRouterIdField.getText();
             if (!ospfRouterId.isEmpty() && overview.getText().contains("OSPF Router ID: " + ospfRouterId)) {
@@ -280,7 +264,7 @@ public class Router extends JFrame {
         if (ripCheckBox.isSelected()) {
             String ripVersion = ripVersionField.getText();
             if (!ripVersion.isEmpty() && overview.getText().contains("RIP Version: " + ripVersion)) {
-                commands.append("router rip\n");
+                commands.append("\nrouter rip\n");
                 commands.append("version ").append(ripVersion).append("\n");
             }
 
@@ -298,7 +282,7 @@ public class Router extends JFrame {
         if (sshCheckBox.isSelected()) {
             String domainName = sshDomainNameField.getText();
             if (!domainName.isEmpty() && overview.getText().contains("SSH Domain Name: " + domainName)) {
-                commands.append("ip domain-name ").append(domainName).append("\n");
+                commands.append("\nip domain-name ").append(domainName).append("\n");
             }
 
             String keyLength = sshKeyLengthField.getText();
@@ -329,7 +313,7 @@ public class Router extends JFrame {
             if (!excludedStart.isEmpty() && !excludedEnd.isEmpty() &&
                     overview.getText().contains("DHCP Excluding Start Address: " + excludedStart) &&
                     overview.getText().contains("DHCP Excluding End Address: " + excludedEnd)) {
-                commands.append("ip dhcp excluded-address ").append(excludedStart).append(" ").append(excludedEnd).append("\n");
+                commands.append("\nip dhcp excluded-address ").append(excludedStart).append(" ").append(excludedEnd).append("\n");
             }
 
             String dhcpName = dhcpNameField.getText();
@@ -368,12 +352,12 @@ public class Router extends JFrame {
         if (hsrpCheckBox.isSelected()) {
             String hsrpGroup = hsrpGroupField.getText();
             if (!hsrpGroup.isEmpty() && overview.getText().contains("HSRP Group: " + hsrpGroup)) {
-                commands.append("standby ").append(hsrpGroup).append("\n");
 
                 String hsrpInterface = hsrpInterfaceField.getText();
                 if (!hsrpInterface.isEmpty() && overview.getText().contains("HSRP Interface: " + hsrpInterface)) {
-                    commands.append("interface ").append(hsrpInterface).append("\n");
+                    commands.append("\ninterface ").append(hsrpInterface).append("\n");
                 }
+                commands.append("standby ").append(hsrpGroup).append("\n");
 
                 String hsrpVersion = hsrpVersionField.getText();
                 if (!hsrpVersion.isEmpty() && overview.getText().contains("HSRP Version: " + hsrpVersion)) {
@@ -386,28 +370,16 @@ public class Router extends JFrame {
                 }
 
                 if (hsrpPreemptionCheckBox.isSelected()) {
-                    commands.append("standby preempt\n");
+                    commands.append("standby ").append(hsrpGroup).append(" preempt\n");
                 }
             }
         }
 
         // NAT Configuration
         if (natCheckBox.isSelected()) {
-            String natInterface = natInterfaceField.getText();
-            String direction = directionField.getText();
-
-            if (!natInterface.isEmpty() && overview.getText().contains("NAT Interface: " + natInterface)) {
-                commands.append("interface ").append(natInterface).append("\n");
-            }
-
-            if (!direction.isEmpty() && overview.getText().contains("Direction: " + direction)) {
-                commands.append("ip nat inside source ").append(direction).append("\n");
-            }
-
             if (staticNatCheckBox.isSelected()) {
                 String privateAddress = natPrivateAddressField.getText();
                 String publicAddress = natPublicAddressField.getText();
-
                 if (!privateAddress.isEmpty() && overview.getText().contains("Private Address: " + privateAddress) &&
                         !publicAddress.isEmpty() && overview.getText().contains("Public Address: " + publicAddress)) {
                     commands.append("ip nat inside source static ").append(privateAddress).append(" ").append(publicAddress).append("\n");
@@ -424,43 +396,77 @@ public class Router extends JFrame {
                 String networkForAccess = natNetworkForAccessField.getText();
                 String wildcardMask = natWildcardMaskField.getText();
 
-                if (!poolName.isEmpty() && overview.getText().contains("Pool-Name: " + poolName)) {
+                if (!poolName.isEmpty() && overview.getText().contains("Pool Name: " + poolName) &&
+                        !dynamicStartIp.isEmpty() && overview.getText().contains("Dynamic Start IP: " + dynamicStartIp) &&
+                        !dynamicEndIp.isEmpty() && overview.getText().contains("Dynamic End IP: " + dynamicEndIp) &&
+                        !netmask.isEmpty() && overview.getText().contains("Netmask: " + netmask)) {
                     commands.append("ip nat pool ").append(poolName).append(" ").append(dynamicStartIp).append(" ").append(dynamicEndIp).append(" netmask ").append(netmask).append("\n");
                 }
 
-                if (!accessList.isEmpty() && overview.getText().contains("Access List Number: " + accessList)) {
+                if (!accessList.isEmpty() && overview.getText().contains("Access List Number: " + accessList) &&
+                        !permitDeny.isEmpty() && !networkForAccess.isEmpty() && !wildcardMask.isEmpty()) {
                     commands.append("access-list ").append(accessList).append(" ").append(permitDeny).append(" ").append(networkForAccess).append(" ").append(wildcardMask).append("\n");
                     commands.append("ip nat inside source list ").append(accessList).append(" pool ").append(poolName).append("\n");
                 }
             }
-        }
 
+            String natInterface = natInterfaceField.getText();
+            String direction = directionField.getText();
+            if (!natInterface.isEmpty() && overview.getText().contains("NAT Interface: " + natInterface)) {
+                commands.append("interface ").append(natInterface).append("\n");
+            }
+            if (!direction.isEmpty() && overview.getText().contains("Direction: " + direction)) {
+                commands.append("ip nat inside source ").append(direction).append("\n");
+            }
+        }
 
         return commands.toString();
     }
 
     private void openCommandWindow(String commands) {
         JFrame commandFrame = new JFrame("Generated Commands");
+        commandFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         commandFrame.setSize(500, 400);
-        commandFrame.setLayout(new BorderLayout());
 
         JTextArea commandArea = new JTextArea(commands);
         commandArea.setEditable(false);
-        commandFrame.add(new JScrollPane(commandArea), BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(commandArea);
 
-        JButton copyButton = new JButton("Copy to Clipboard");
+        JButton copyButton = new JButton("Copy");
         copyButton.addActionListener(e -> {
             StringSelection stringSelection = new StringSelection(commands);
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             clipboard.setContents(stringSelection, null);
         });
 
+        // Download Button
+        JButton downloadButton = new JButton("Download");
+        downloadButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Specify a file to save");
+            int userSelection = fileChooser.showSaveDialog(commandFrame);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                try (FileWriter fileWriter = new FileWriter(fileToSave)) {
+                    fileWriter.write(commands);
+                    JOptionPane.showMessageDialog(commandFrame, "File has been saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(commandFrame, "An error occurred while saving the file.", "Error", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
+            }
+        });
+
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(copyButton);
-        commandFrame.add(buttonPanel, BorderLayout.SOUTH);
+        buttonPanel.add(downloadButton);
 
+        commandFrame.getContentPane().add(scrollPane, BorderLayout.CENTER);
+        commandFrame.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
         commandFrame.setVisible(true);
     }
+
 
     private void natConfiguration() {
         natPanel = new JPanel();
