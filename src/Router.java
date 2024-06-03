@@ -1,6 +1,9 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.datatransfer.StringSelection;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
 
 public class Router extends JFrame {
 
@@ -51,12 +54,12 @@ public class Router extends JFrame {
 
     /* Basic Configuration */
 
-    private JTextField hostnameField;
-    private JTextField bannerField;
-    private JCheckBox noIpDomainLookupCheckBox;
+    JTextField hostnameField;
+    JTextField bannerField;
+    JCheckBox noIpDomainLookupCheckBox;
     private JCheckBox ipCheckBox;
     private JCheckBox servicePasswordEncryptionCheckBox;
-    private JTextField enablePasswordField;
+    JTextField enablePasswordField;
     private JTextField interfaceField;
     private JTextField ipAddressField;
 
@@ -132,19 +135,13 @@ public class Router extends JFrame {
         accessPanel = new JPanel();
         accessConfiguration();
 
-        // ACL's
-
         // SSH
         sshPanel = new JPanel();
         sshConfiguration();
 
         // NAT
         natPanel = new JPanel();
-        //natConfiguration();
-
-        // PAT
-
-        // cdp run, no lldp run
+        natConfiguration();
 
         // Add panels to the configuration panel
         configPanel.add(basicPanel);
@@ -171,27 +168,529 @@ public class Router extends JFrame {
         add(buttonPanel, BorderLayout.SOUTH);
         generateButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                // TODO: Implement generate action
+                String basicConfigCommands = generateConfig();
+                openCommandWindow(basicConfigCommands);
             }
         });
 
         // Display Area
         overview = new JTextArea();
-        overview.setEditable(false); // Set to false to prevent user editing
+        overview.setEditable(false);
         add(new JScrollPane(overview), BorderLayout.CENTER);
 
         setVisible(true);
     }
 
+    private String generateConfig() {
+        StringBuilder commands = new StringBuilder();
+
+        //basic config
+        String hostname = hostnameField.getText();
+        if (!hostname.isEmpty() && overview.getText().contains("Hostname: " + hostname)) {
+            commands.append("hostname ").append(hostname).append("\n");
+        }
+
+        String banner = bannerField.getText();
+        if (!banner.isEmpty() && overview.getText().contains("Banner: " + banner)) {
+            commands.append("banner motd #").append(banner).append("#\n");
+        }
+
+        if (noIpDomainLookupCheckBox.isSelected()) {
+            commands.append("no ip domain-lookup\n");
+        }
+
+        String enablePassword = enablePasswordField.getText();
+        if (!enablePassword.isEmpty() && overview.getText().contains("Enable Password: " + enablePassword)) {
+            commands.append("enable secret ").append(enablePassword).append("\n");
+        }
+
+        if (servicePasswordEncryptionCheckBox.isSelected()) {
+            commands.append("service password-encryption\n");
+        }
+
+        if (ipCheckBox.isSelected()) {
+            String interfaceText = interfaceField.getText();
+            if (!interfaceText.isEmpty() && overview.getText().contains("Interface: " + interfaceText)) {
+                commands.append("interface ").append(interfaceText).append("\n");
+            }
+
+            String ipAddress = ipAddressField.getText();
+            if (!ipAddress.isEmpty() && overview.getText().contains("IP Address: " + ipAddress)) {
+                commands.append("ip address ").append(ipAddress).append("\n");
+            }
+        }
+
+        // Access Configuration
+        String line = accessLineField.getText();
+        if (!line.isEmpty() && overview.getText().contains("Line: " + line)) {
+            commands.append("line ").append(line).append("\n");
+        }
+
+        String password = accessPasswordField.getText();
+        if (!password.isEmpty() && overview.getText().contains("Password: " + password)) {
+            commands.append("password ").append(password).append("\n");
+        }
+
+        if (accessLoginCheckBox.isSelected()) {
+            commands.append("login\n");
+        }
+
+        // OSPF Configuration
+//        String ospfProcessId = ospfProcessIdField.getText();
+//        if (!ospfProcessId.isEmpty() && overview.getText().contains("OSPF Process ID: " + ospfProcessId)) {
+//            commands.append("router ospf ").append(ospfProcessId).append("\n");
+//        }
+//
+//        String ospfNetwork = ospfNetworkField.getText();
+//        String ospfWildcard = ospfWildcardField.getText();
+//        String ospfArea = ospfAreaField.getText();
+//        if (!ospfNetwork.isEmpty() && !ospfWildcard.isEmpty() && !ospfArea.isEmpty() &&
+//                overview.getText().contains("Network: " + ospfNetwork) &&
+//                overview.getText().contains("Wildcard: " + ospfWildcard) &&
+//                overview.getText().contains("Area: " + ospfArea)) {
+//            commands.append("network ").append(ospfNetwork).append(" ").append(ospfWildcard)
+//                    .append(" area ").append(ospfArea).append("\n");
+//        }
+//
+//        if (ospfCheckBox.isSelected()) {
+//            commands.append("router ospf ").append(ospfProcessId).append("\n");
+//        }
+        String ospfGroup = ospfGroupField.getText();
+        if (!ospfGroup.isEmpty() && overview.getText().contains("OSPF Group: " + ospfGroup)) {
+            commands.append("router ospf ").append(ospfGroup).append("\n");
+
+            String ospfRouterId = ospfRouterIdField.getText();
+            if (!ospfRouterId.isEmpty() && overview.getText().contains("OSPF Router ID: " + ospfRouterId)) {
+                commands.append("router-id ").append(ospfRouterId).append("\n");
+            }
+
+            String ospfNetwork = ospfNetworkField.getText();
+            if (!ospfNetwork.isEmpty() && overview.getText().contains("OSPF Network: " + ospfNetwork)) {
+                commands.append("network ").append(ospfNetwork).append("\n");
+            }
+
+            String ospfPassiveInterface = ospfPassiveInterfaceField.getText();
+            if (!ospfPassiveInterface.isEmpty() && overview.getText().contains("OSPF Passive Interface: " + ospfPassiveInterface)) {
+                commands.append("passive-interface ").append(ospfPassiveInterface).append("\n");
+            }
+        }
+
+
+        // RIP Configuration
+        if (ripCheckBox.isSelected()) {
+            String ripVersion = ripVersionField.getText();
+            if (!ripVersion.isEmpty() && overview.getText().contains("RIP Version: " + ripVersion)) {
+                commands.append("router rip\n");
+                commands.append("version ").append(ripVersion).append("\n");
+            }
+
+            String ripNetwork = ripNetworkField.getText();
+            if (!ripNetwork.isEmpty() && overview.getText().contains("RIP Network: " + ripNetwork)) {
+                commands.append("network ").append(ripNetwork).append("\n");
+            }
+
+            String ripPassiveInterface = ripPassiveInterfaceField.getText();
+            if (!ripPassiveInterface.isEmpty() && overview.getText().contains("RIP Passive Interface: " + ripPassiveInterface)) {
+                commands.append("passive-interface ").append(ripPassiveInterface).append("\n");
+            }
+        }
+
+        if (sshCheckBox.isSelected()) {
+            String domainName = sshDomainNameField.getText();
+            if (!domainName.isEmpty() && overview.getText().contains("SSH Domain Name: " + domainName)) {
+                commands.append("ip domain-name ").append(domainName).append("\n");
+            }
+
+            String keyLength = sshKeyLengthField.getText();
+            if (!keyLength.isEmpty() && overview.getText().contains("SSH Key Length: " + keyLength)) {
+                commands.append("crypto key generate rsa modulus ").append(keyLength).append("\n");
+            }
+
+            String username = sshUsernameField.getText();
+            String passwordSSH = sshPasswordField.getText();
+            if (!username.isEmpty() && !passwordSSH.isEmpty() &&
+                    overview.getText().contains("SSH Username: " + username) &&
+                    overview.getText().contains("SSH Password: " + passwordSSH)) {
+                commands.append("username ").append(username).append(" password ").append(passwordSSH).append("\n");
+            }
+
+            String vtyLine = sshVtyLineField.getText();
+            if (!vtyLine.isEmpty() && overview.getText().contains("SSH VTY Line: " + vtyLine)) {
+                commands.append("line vty 0 ").append(vtyLine).append("\n");
+                commands.append("transport input ssh\n");
+                commands.append("login local\n");
+            }
+        }
+
+        // DHCP Configuration
+        if (dhcpCheckBox.isSelected()) {
+            String excludedStart = excludedAddressStartField.getText();
+            String excludedEnd = excludedAddressEndField.getText();
+            if (!excludedStart.isEmpty() && !excludedEnd.isEmpty() &&
+                    overview.getText().contains("DHCP Excluding Start Address: " + excludedStart) &&
+                    overview.getText().contains("DHCP Excluding End Address: " + excludedEnd)) {
+                commands.append("ip dhcp excluded-address ").append(excludedStart).append(" ").append(excludedEnd).append("\n");
+            }
+
+            String dhcpName = dhcpNameField.getText();
+            if (!dhcpName.isEmpty() && overview.getText().contains("Pool Name: " + dhcpName)) {
+                commands.append("ip dhcp pool ").append(dhcpName).append("\n");
+            }
+
+            String dhcpNetwork = dhcpNetworkField.getText();
+            if (!dhcpNetwork.isEmpty() && overview.getText().contains("Network: " + dhcpNetwork)) {
+                commands.append("network ").append(dhcpNetwork).append("\n");
+            }
+
+            String dhcpDefaultRouter = dhcpDefaultRouterField.getText();
+            if (!dhcpDefaultRouter.isEmpty() && overview.getText().contains("Default Router: " + dhcpDefaultRouter)) {
+                commands.append("default-router ").append(dhcpDefaultRouter).append("\n");
+            }
+
+            String dhcpDns = dhcpDnsField.getText();
+            if (!dhcpDns.isEmpty() && overview.getText().contains("DNS: " + dhcpDns)) {
+                commands.append("dns-server ").append(dhcpDns).append("\n");
+            }
+
+            if (dhcpHelperCheckBox.isSelected()) {
+                String helperInterface = dhcpHelperInterfaceField.getText();
+                String helperIp = dhcpHelperIpField.getText();
+                if (!helperInterface.isEmpty() && !helperIp.isEmpty() &&
+                        overview.getText().contains("DHCP Helper Interface: " + helperInterface) &&
+                        overview.getText().contains("DHCP Helper IP Address: " + helperIp)) {
+                    commands.append("interface ").append(helperInterface).append("\n");
+                    commands.append("ip helper-address ").append(helperIp).append("\n");
+                }
+            }
+        }
+
+        // HSRP Configuration
+        if (hsrpCheckBox.isSelected()) {
+            String hsrpGroup = hsrpGroupField.getText();
+            if (!hsrpGroup.isEmpty() && overview.getText().contains("HSRP Group: " + hsrpGroup)) {
+                commands.append("standby ").append(hsrpGroup).append("\n");
+
+                String hsrpInterface = hsrpInterfaceField.getText();
+                if (!hsrpInterface.isEmpty() && overview.getText().contains("HSRP Interface: " + hsrpInterface)) {
+                    commands.append("interface ").append(hsrpInterface).append("\n");
+                }
+
+                String hsrpVersion = hsrpVersionField.getText();
+                if (!hsrpVersion.isEmpty() && overview.getText().contains("HSRP Version: " + hsrpVersion)) {
+                    commands.append("standby version ").append(hsrpVersion).append("\n");
+                }
+
+                String hsrpIpPriority = hsrpIpPriorityField.getText();
+                if (!hsrpIpPriority.isEmpty() && overview.getText().contains("HSRP IP Priority: " + hsrpIpPriority)) {
+                    commands.append("standby ").append(hsrpGroup).append(" ip ").append(hsrpIpPriority).append("\n");
+                }
+
+                if (hsrpPreemptionCheckBox.isSelected()) {
+                    commands.append("standby preempt\n");
+                }
+            }
+        }
+
+        // NAT Configuration
+        if (natCheckBox.isSelected()) {
+            String natInterface = natInterfaceField.getText();
+            String direction = directionField.getText();
+
+            if (!natInterface.isEmpty() && overview.getText().contains("NAT Interface: " + natInterface)) {
+                commands.append("interface ").append(natInterface).append("\n");
+            }
+
+            if (!direction.isEmpty() && overview.getText().contains("Direction: " + direction)) {
+                commands.append("ip nat inside source ").append(direction).append("\n");
+            }
+
+            if (staticNatCheckBox.isSelected()) {
+                String privateAddress = natPrivateAddressField.getText();
+                String publicAddress = natPublicAddressField.getText();
+
+                if (!privateAddress.isEmpty() && overview.getText().contains("Private Address: " + privateAddress) &&
+                        !publicAddress.isEmpty() && overview.getText().contains("Public Address: " + publicAddress)) {
+                    commands.append("ip nat inside source static ").append(privateAddress).append(" ").append(publicAddress).append("\n");
+                }
+            }
+
+            if (dynamicNatCheckBox.isSelected()) {
+                String poolName = natPoolNameField.getText();
+                String dynamicStartIp = dynamicStartIpField.getText();
+                String dynamicEndIp = dynamicEndIpField.getText();
+                String netmask = natNetmaskField.getText();
+                String accessList = natAccessListField.getText();
+                String permitDeny = natPermitDenyField.getText();
+                String networkForAccess = natNetworkForAccessField.getText();
+                String wildcardMask = natWildcardMaskField.getText();
+
+                if (!poolName.isEmpty() && overview.getText().contains("Pool-Name: " + poolName)) {
+                    commands.append("ip nat pool ").append(poolName).append(" ").append(dynamicStartIp).append(" ").append(dynamicEndIp).append(" netmask ").append(netmask).append("\n");
+                }
+
+                if (!accessList.isEmpty() && overview.getText().contains("Access List Number: " + accessList)) {
+                    commands.append("access-list ").append(accessList).append(" ").append(permitDeny).append(" ").append(networkForAccess).append(" ").append(wildcardMask).append("\n");
+                    commands.append("ip nat inside source list ").append(accessList).append(" pool ").append(poolName).append("\n");
+                }
+            }
+        }
+
+
+        return commands.toString();
+    }
+
+    private void openCommandWindow(String commands) {
+        JFrame commandFrame = new JFrame("Generated Commands");
+        commandFrame.setSize(500, 400);
+        commandFrame.setLayout(new BorderLayout());
+
+        JTextArea commandArea = new JTextArea(commands);
+        commandArea.setEditable(false);
+        commandFrame.add(new JScrollPane(commandArea), BorderLayout.CENTER);
+
+        JButton copyButton = new JButton("Copy to Clipboard");
+        copyButton.addActionListener(e -> {
+            StringSelection stringSelection = new StringSelection(commands);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(stringSelection, null);
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(copyButton);
+        commandFrame.add(buttonPanel, BorderLayout.SOUTH);
+
+        commandFrame.setVisible(true);
+    }
+
+    private void natConfiguration() {
+        natPanel = new JPanel();
+        natPanel.setLayout(new BoxLayout(natPanel, BoxLayout.Y_AXIS));
+        natPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        natCheckBox = new JCheckBox("NAT");
+        natPanel.add(natCheckBox);
+
+        // Additional Checkboxes for Static and Dynamic NAT (initially hidden)
+        staticNatCheckBox = new JCheckBox("Static NAT");
+        staticNatCheckBox.setVisible(false);
+        natPanel.add(staticNatCheckBox);
+
+        dynamicNatCheckBox = new JCheckBox("Dynamic NAT");
+        dynamicNatCheckBox.setVisible(false);
+        natPanel.add(dynamicNatCheckBox);
+
+        // Fields for Static NAT (initially hidden)
+        JPanel staticNatPanel = new JPanel();
+        staticNatPanel.setLayout(new BoxLayout(staticNatPanel, BoxLayout.Y_AXIS));
+        JLabel privateAddressLabel = new JLabel("Private Address:");
+        natPrivateAddressField = new JTextField(20);
+        natPrivateAddressField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natPrivateAddressField.getPreferredSize().height));
+        privateAddressLabel.setVisible(false);
+        natPrivateAddressField.setVisible(false);
+        staticNatPanel.add(privateAddressLabel);
+        staticNatPanel.add(natPrivateAddressField);
+
+        JLabel publicAddressLabel = new JLabel("Public Address:");
+        natPublicAddressField = new JTextField(20);
+        natPublicAddressField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natPublicAddressField.getPreferredSize().height));
+        publicAddressLabel.setVisible(false);
+        natPublicAddressField.setVisible(false);
+        staticNatPanel.add(publicAddressLabel);
+        staticNatPanel.add(natPublicAddressField);
+        staticNatPanel.setVisible(false);
+        natPanel.add(staticNatPanel);
+
+        // Fields for Dynamic NAT (initially hidden)
+        JPanel dynamicNatPanel = new JPanel();
+        dynamicNatPanel.setLayout(new BoxLayout(dynamicNatPanel, BoxLayout.Y_AXIS));
+        JLabel poolNameLabel = new JLabel("Pool Name:");
+        natPoolNameField = new JTextField(20);
+        natPoolNameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natPoolNameField.getPreferredSize().height));
+        poolNameLabel.setVisible(false);
+        natPoolNameField.setVisible(false);
+        dynamicNatPanel.add(poolNameLabel);
+        dynamicNatPanel.add(natPoolNameField);
+
+        JLabel dynamicStartIpLabel = new JLabel("Dynamic Start IP:");
+        dynamicStartIpField = new JTextField(20);
+        dynamicStartIpField.setMaximumSize(new Dimension(Integer.MAX_VALUE, dynamicStartIpField.getPreferredSize().height));
+        dynamicStartIpLabel.setVisible(false);
+        dynamicStartIpField.setVisible(false);
+        dynamicNatPanel.add(dynamicStartIpLabel);
+        dynamicNatPanel.add(dynamicStartIpField);
+
+        JLabel dynamicEndIpLabel = new JLabel("Dynamic End IP:");
+        dynamicEndIpField = new JTextField(20);
+        dynamicEndIpField.setMaximumSize(new Dimension(Integer.MAX_VALUE, dynamicEndIpField.getPreferredSize().height));
+        dynamicEndIpLabel.setVisible(false);
+        dynamicEndIpField.setVisible(false);
+        dynamicNatPanel.add(dynamicEndIpLabel);
+        dynamicNatPanel.add(dynamicEndIpField);
+
+        JLabel netmaskLabel = new JLabel("Netmask:");
+        natNetmaskField = new JTextField(20);
+        natNetmaskField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natNetmaskField.getPreferredSize().height));
+        netmaskLabel.setVisible(false);
+        natNetmaskField.setVisible(false);
+        dynamicNatPanel.add(netmaskLabel);
+        dynamicNatPanel.add(natNetmaskField);
+
+        JLabel accessListLabel = new JLabel("Access List Number:");
+        natAccessListField = new JTextField(20);
+        natAccessListField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natAccessListField.getPreferredSize().height));
+        accessListLabel.setVisible(false);
+        natAccessListField.setVisible(false);
+        dynamicNatPanel.add(accessListLabel);
+        dynamicNatPanel.add(natAccessListField);
+
+        JLabel permitDenyLabel = new JLabel("Permit/Deny:");
+        natPermitDenyField = new JTextField(20);
+        natPermitDenyField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natPermitDenyField.getPreferredSize().height));
+        permitDenyLabel.setVisible(false);
+        natPermitDenyField.setVisible(false);
+        dynamicNatPanel.add(permitDenyLabel);
+        dynamicNatPanel.add(natPermitDenyField);
+
+        JLabel networkForAccessLabel = new JLabel("Network for Access List:");
+        natNetworkForAccessField = new JTextField(20);
+        natNetworkForAccessField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natNetworkForAccessField.getPreferredSize().height));
+        networkForAccessLabel.setVisible(false);
+        natNetworkForAccessField.setVisible(false);
+        dynamicNatPanel.add(networkForAccessLabel);
+        dynamicNatPanel.add(natNetworkForAccessField);
+
+        JLabel wildcardMaskLabel = new JLabel("Wildcard Mask for Access List:");
+        natWildcardMaskField = new JTextField(20);
+        natWildcardMaskField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natWildcardMaskField.getPreferredSize().height));
+        wildcardMaskLabel.setVisible(false);
+        natWildcardMaskField.setVisible(false);
+        dynamicNatPanel.add(wildcardMaskLabel);
+        dynamicNatPanel.add(natWildcardMaskField);
+        dynamicNatPanel.setVisible(false);
+        natPanel.add(dynamicNatPanel);
+
+        // Fields for Interface and Direction (initially hidden)
+        JLabel interfaceLabel = new JLabel("Interface:");
+        natInterfaceField = new JTextField(20);
+        natInterfaceField.setMaximumSize(new Dimension(Integer.MAX_VALUE, natInterfaceField.getPreferredSize().height));
+        interfaceLabel.setVisible(false);
+        natInterfaceField.setVisible(false);
+        natPanel.add(interfaceLabel);
+        natPanel.add(natInterfaceField);
+
+        JLabel directionLabel = new JLabel("Direction:");
+        directionField = new JTextField(20);
+        directionField.setMaximumSize(new Dimension(Integer.MAX_VALUE, directionField.getPreferredSize().height));
+        directionLabel.setVisible(false);
+        directionField.setVisible(false);
+        natPanel.add(directionLabel);
+        natPanel.add(directionField);
+
+        // ActionListener for the main NAT Checkbox
+        natCheckBox.addActionListener(e -> {
+            boolean selected = natCheckBox.isSelected();
+            staticNatCheckBox.setVisible(selected);
+            dynamicNatCheckBox.setVisible(selected);
+            interfaceLabel.setVisible(selected);
+            natInterfaceField.setVisible(selected);
+            directionLabel.setVisible(selected);
+            directionField.setVisible(selected);
+            revalidate();
+            repaint();
+        });
+
+        // ActionListener for Static NAT Checkbox
+        staticNatCheckBox.addActionListener(e -> {
+            boolean selected = staticNatCheckBox.isSelected();
+            privateAddressLabel.setVisible(selected);
+            natPrivateAddressField.setVisible(selected);
+            publicAddressLabel.setVisible(selected);
+            natPublicAddressField.setVisible(selected);
+            staticNatPanel.setVisible(selected);
+            revalidate();
+            repaint();
+        });
+
+        // ActionListener for Dynamic NAT Checkbox
+        dynamicNatCheckBox.addActionListener(e -> {
+            boolean selected = dynamicNatCheckBox.isSelected();
+            poolNameLabel.setVisible(selected);
+            natPoolNameField.setVisible(selected);
+            dynamicStartIpLabel.setVisible(selected);
+            dynamicStartIpField.setVisible(selected);
+            dynamicEndIpLabel.setVisible(selected);
+            dynamicEndIpField.setVisible(selected);
+            netmaskLabel.setVisible(selected);
+            natNetmaskField.setVisible(selected);
+            accessListLabel.setVisible(selected);
+            natAccessListField.setVisible(selected);
+            permitDenyLabel.setVisible(selected);
+            natPermitDenyField.setVisible(selected);
+            networkForAccessLabel.setVisible(selected);
+            natNetworkForAccessField.setVisible(selected);
+            wildcardMaskLabel.setVisible(selected);
+            natWildcardMaskField.setVisible(selected);
+            dynamicNatPanel.setVisible(selected);
+            revalidate();
+            repaint();
+        });
+
+        // Action listeners to update the overview area for Static NAT
+        natPrivateAddressField.addActionListener(e -> {
+            overview.append("NAT Private Address: " + natPrivateAddressField.getText() + "\n");
+        });
+
+        natPublicAddressField.addActionListener(e -> {
+            overview.append("NAT Public Address: " + natPublicAddressField.getText() + "\n");
+        });
+
+        // Action listeners to update the overview area for Dynamic NAT
+        natPoolNameField.addActionListener(e -> {
+            overview.append("NAT Pool Name: " + natPoolNameField.getText() + "\n");
+        });
+
+        dynamicStartIpField.addActionListener(e -> {
+            overview.append("Dynamic Start IP: " + dynamicStartIpField.getText() + "\n");
+        });
+
+        dynamicEndIpField.addActionListener(e -> {
+            overview.append("Dynamic End IP: " + dynamicEndIpField.getText() + "\n");
+        });
+
+        natNetmaskField.addActionListener(e -> {
+            overview.append("Netmask: " + natNetmaskField.getText() + "\n");
+        });
+
+        natAccessListField.addActionListener(e -> {
+            overview.append("Access List Number: " + natAccessListField.getText() + "\n");
+        });
+
+        natPermitDenyField.addActionListener(e -> {
+            overview.append("Permit/Deny: " + natPermitDenyField.getText() + "\n");
+        });
+
+        natNetworkForAccessField.addActionListener(e -> {
+            overview.append("Network for Access List: " + natNetworkForAccessField.getText() + "\n");
+        });
+
+        natWildcardMaskField.addActionListener(e -> {
+            overview.append("Wildcard Mask for Access List: " + natWildcardMaskField.getText() + "\n");
+        });
+
+        natInterfaceField.addActionListener(e -> {
+            overview.append("NAT Interface: " + natInterfaceField.getText() + "\n");
+        });
+
+        directionField.addActionListener(e -> {
+            overview.append("NAT Direction: " + directionField.getText() + "\n");
+        });
+    }
 
     private void sshConfiguration() {
-        sshPanel = new JPanel();
         sshPanel.setLayout(new BoxLayout(sshPanel, BoxLayout.Y_AXIS));
         sshPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         sshCheckBox = new JCheckBox("SSH");
         sshPanel.add(sshCheckBox);
 
-        // Fields and Labels (initially hidden)
         JLabel domainNameLabel = new JLabel("Domain Name:");
         sshDomainNameField = new JTextField(20);
         sshDomainNameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshDomainNameField.getPreferredSize().height));
@@ -216,12 +715,12 @@ public class Router extends JFrame {
         sshPanel.add(usernameLabel);
         sshPanel.add(sshUsernameField);
 
-        JLabel sshPasswordLabel = new JLabel("Password:");
+        JLabel passwordLabel = new JLabel("Password:");
         sshPasswordField = new JTextField(20);
         sshPasswordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, sshPasswordField.getPreferredSize().height));
-        sshPasswordLabel.setVisible(false);
+        passwordLabel.setVisible(false);
         sshPasswordField.setVisible(false);
-        sshPanel.add(sshPasswordLabel);
+        sshPanel.add(passwordLabel);
         sshPanel.add(sshPasswordField);
 
         JLabel vtyLineLabel = new JLabel("VTY Line:");
@@ -240,7 +739,7 @@ public class Router extends JFrame {
             sshKeyLengthField.setVisible(selected);
             usernameLabel.setVisible(selected);
             sshUsernameField.setVisible(selected);
-            sshPasswordLabel.setVisible(selected);
+            passwordLabel.setVisible(selected);
             sshPasswordField.setVisible(selected);
             vtyLineLabel.setVisible(selected);
             sshVtyLineField.setVisible(selected);
@@ -250,28 +749,23 @@ public class Router extends JFrame {
 
         // Action listeners to update the overview area
         sshDomainNameField.addActionListener(e -> {
-            overview.append("Domain Name: " + sshDomainNameField.getText() + "\n");
-            sshDomainNameField.setText("");
+            overview.append("SSH Domain Name: " + sshDomainNameField.getText() + "\n");
         });
 
         sshKeyLengthField.addActionListener(e -> {
-            overview.append("Key Length: " + sshKeyLengthField.getText() + "\n");
-            sshKeyLengthField.setText("");
+            overview.append("SSH Key Length: " + sshKeyLengthField.getText() + "\n");
         });
 
         sshUsernameField.addActionListener(e -> {
-            overview.append("Username: " + sshUsernameField.getText() + "\n");
-            sshUsernameField.setText("");
+            overview.append("SSH Username: " + sshUsernameField.getText() + "\n");
         });
 
         sshPasswordField.addActionListener(e -> {
-            overview.append("Password: " + sshPasswordField.getText() + "\n");
-            sshPasswordField.setText("");
+            overview.append("SSH Password: " + sshPasswordField.getText() + "\n");
         });
 
         sshVtyLineField.addActionListener(e -> {
-            overview.append("VTY Line: " + sshVtyLineField.getText() + "\n");
-            sshVtyLineField.setText("");
+            overview.append("SSH VTY Line: " + sshVtyLineField.getText() + "\n");
         });
     }
 
@@ -327,7 +821,7 @@ public class Router extends JFrame {
         basicPanel.add(interfaceLabel);
         basicPanel.add(interfaceField);
 
-        JLabel ipAddressLabel = new JLabel("IP Address:");
+        JLabel ipAddressLabel = new JLabel("IP Address + Subnet Mask:");
         ipAddressField = new JTextField(20);
         ipAddressField.setMaximumSize(new Dimension(Integer.MAX_VALUE, ipAddressField.getPreferredSize().height));
         ipAddressLabel.setVisible(false);
@@ -371,17 +865,14 @@ public class Router extends JFrame {
         // Action listeners to update the overview area
         hostnameField.addActionListener(e -> {
             overview.append("Hostname: " + hostnameField.getText() + "\n");
-            hostnameField.setText("");
         });
 
         bannerField.addActionListener(e -> {
             overview.append("Banner: " + bannerField.getText() + "\n");
-            bannerField.setText("");
         });
 
         enablePasswordField.addActionListener(e -> {
             overview.append("Enable Password: " + enablePasswordField.getText() + "\n");
-            enablePasswordField.setText("");
         });
 
         servicePasswordEncryptionCheckBox.addActionListener(e -> {
@@ -402,12 +893,10 @@ public class Router extends JFrame {
 
         interfaceField.addActionListener(e -> {
             overview.append("Interface: " + interfaceField.getText() + "\n");
-            interfaceField.setText("");
         });
 
         ipAddressField.addActionListener(e -> {
-            overview.append("IP Address: " + ipAddressField.getText() + "\n");
-            ipAddressField.setText("");
+            overview.append("IP Address + Subnet Mask: " + ipAddressField.getText() + "\n");
         });
     }
 
@@ -452,12 +941,10 @@ public class Router extends JFrame {
         // Action listeners to update the overview area
         accessLineField.addActionListener(e -> {
             overview.append("Line: " + accessLineField.getText() + "\n");
-            accessLineField.setText("");
         });
 
         accessPasswordField.addActionListener(e -> {
             overview.append("Password: " + accessPasswordField.getText() + "\n");
-            accessPasswordField.setText("");
         });
 
         accessLoginCheckBox.addActionListener(e -> {
@@ -534,22 +1021,18 @@ public class Router extends JFrame {
         // Action listeners to update the overview area
         hsrpGroupField.addActionListener(e -> {
             overview.append("HSRP Group: " + hsrpGroupField.getText() + "\n");
-            hsrpGroupField.setText("");
         });
 
         hsrpInterfaceField.addActionListener(e -> {
             overview.append("HSRP Interface: " + hsrpInterfaceField.getText() + "\n");
-            hsrpInterfaceField.setText("");
         });
 
         hsrpVersionField.addActionListener(e -> {
             overview.append("HSRP Version: " + hsrpVersionField.getText() + "\n");
-            hsrpVersionField.setText("");
         });
 
         hsrpIpPriorityField.addActionListener(e -> {
             overview.append("HSRP IP Priority: " + hsrpIpPriorityField.getText() + "\n");
-            hsrpIpPriorityField.setText("");
         });
 
         hsrpPreemptionCheckBox.addActionListener(e -> {
@@ -669,44 +1152,37 @@ public class Router extends JFrame {
         // Action listeners to update the overview area
         excludedAddressStartField.addActionListener(e -> {
             overview.append("DHCP Excluding Start Address: " + excludedAddressStartField.getText() + "\n");
-            excludedAddressStartField.setText("");
         });
 
         excludedAddressEndField.addActionListener(e -> {
             overview.append("DHCP Excluding End Address: " + excludedAddressEndField.getText() + "\n");
-            excludedAddressEndField.setText("");
         });
 
         dhcpNameField.addActionListener(e -> {
             overview.append("Pool Name: " + dhcpNameField.getText() + "\n");
-            dhcpNameField.setText("");
         });
 
         dhcpNetworkField.addActionListener(e -> {
             overview.append("Network: " + dhcpNetworkField.getText() + "\n");
-            dhcpNetworkField.setText("");
         });
 
         dhcpDefaultRouterField.addActionListener(e -> {
             overview.append("Default Router: " + dhcpDefaultRouterField.getText() + "\n");
-            dhcpDefaultRouterField.setText("");
         });
 
         dhcpDnsField.addActionListener(e -> {
             overview.append("DNS: " + dhcpDnsField.getText() + "\n");
-            dhcpDnsField.setText("");
         });
 
         dhcpHelperInterfaceField.addActionListener(e -> {
             overview.append("DHCP Helper Interface: " + dhcpHelperInterfaceField.getText() + "\n");
-            dhcpHelperInterfaceField.setText("");
         });
 
         dhcpHelperIpField.addActionListener(e -> {
             overview.append("DHCP Helper IP Address: " + dhcpHelperIpField.getText() + "\n");
-            dhcpHelperIpField.setText("");
         });
     }
+
 
     private void ospfConfiguration() {
         ospfPanel.setLayout(new BoxLayout(ospfPanel, BoxLayout.Y_AXIS));
@@ -764,22 +1240,18 @@ public class Router extends JFrame {
         // Action listeners to update the overview area
         ospfGroupField.addActionListener(e -> {
             overview.append("OSPF Group: " + ospfGroupField.getText() + "\n");
-            ospfGroupField.setText("");
         });
 
         ospfRouterIdField.addActionListener(e -> {
             overview.append("OSPF Router ID: " + ospfRouterIdField.getText() + "\n");
-            ospfRouterIdField.setText("");
         });
 
         ospfNetworkField.addActionListener(e -> {
             overview.append("OSPF Network: " + ospfNetworkField.getText() + "\n");
-            ospfNetworkField.setText("");
         });
 
         ospfPassiveInterfaceField.addActionListener(e -> {
             overview.append("OSPF Passive Interface: " + ospfPassiveInterfaceField.getText() + "\n");
-            ospfPassiveInterfaceField.setText("");
         });
     }
 
@@ -830,17 +1302,14 @@ public class Router extends JFrame {
         // Action listeners to update the overview area
         ripVersionField.addActionListener(e -> {
             overview.append("RIP Version: " + ripVersionField.getText() + "\n");
-            ripVersionField.setText("");
         });
 
         ripNetworkField.addActionListener(e -> {
             overview.append("RIP Network: " + ripNetworkField.getText() + "\n");
-            ripNetworkField.setText("");
         });
 
         ripPassiveInterfaceField.addActionListener(e -> {
             overview.append("RIP Passive Interface: " + ripPassiveInterfaceField.getText() + "\n");
-            ripPassiveInterfaceField.setText("");
         });
     }
 
