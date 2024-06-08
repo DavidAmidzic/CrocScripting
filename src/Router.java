@@ -439,9 +439,9 @@ public class Router extends JFrame {
             clipboard.setContents(stringSelection, null);
         });
 
-        // Download Button
-        JButton downloadButton = new JButton("Download");
-        downloadButton.addActionListener(e -> {
+        // Save-As Button
+        JButton saveButton = new JButton("Save");
+        saveButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Specify a file to save");
             int userSelection = fileChooser.showSaveDialog(commandFrame);
@@ -460,7 +460,7 @@ public class Router extends JFrame {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(copyButton);
-        buttonPanel.add(downloadButton);
+        buttonPanel.add(saveButton);
 
         commandFrame.getContentPane().add(scrollPane, BorderLayout.CENTER);
         commandFrame.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
@@ -1188,7 +1188,6 @@ public class Router extends JFrame {
             overview.append("DHCP Helper IP Address: " + dhcpHelperIpField.getText() + "\n");
         });
     }
-
 
     private void ospfConfiguration() {
         ospfPanel.setLayout(new BoxLayout(ospfPanel, BoxLayout.Y_AXIS));

@@ -1,10 +1,13 @@
 import javax.swing.*;
 import java.awt.*;
-
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class Wiki extends JFrame {
 
     private JPanel mainPanel;
+    private JCheckBox routerCheckBox;
+    private JCheckBox switchCheckBox;
 
     public Wiki() {
         setTitle("Wiki - Configuration Commands");
@@ -20,8 +23,18 @@ public class Wiki extends JFrame {
         JScrollPane scrollPane = new JScrollPane(mainPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
-        // Add categories and commands to the main panel
-        addCategory("Basic Configuration", new String[]{
+        // Add Router checkbox
+        routerCheckBox = new JCheckBox("Router");
+        routerCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Panel for router options
+        JPanel routerPanel = new JPanel();
+        routerPanel.setLayout(new BoxLayout(routerPanel, BoxLayout.Y_AXIS));
+        routerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        routerPanel.setVisible(false);
+
+        // Add categories and commands to the router panel
+        addCategory(routerPanel, "Basic Configuration", new String[]{
                 "hostname <name> - Sets the hostname for the router.",
                 "banner motd #<message># - Sets the Message of the Day banner.",
                 "no ip domain-lookup - Disables DNS lookup to prevent the router from attempting to translate unknown commands as hostnames.",
@@ -31,42 +44,44 @@ public class Wiki extends JFrame {
                 "ip address <address> <subnet mask> - Assigns an IP address to an interface."
         });
 
-        addCategory("Access Configuration", new String[]{
-                "line <line> <number> - Defines the access-line (vty 0 15, console 0)",
-                "password <password> - sets a password for that access line",
-                "login - Enables a login-systme."
-        });
-
-        addCategory("DHCP Configuration", new String[]{
+        addCategory(routerPanel, "DHCP Configuration", new String[]{
                 "ip dhcp excluded-address <start-ip> <end-ip> - Excludes IP addresses from being assigned by DHCP.",
                 "ip dhcp pool <name> - Creates a DHCP pool with the specified name.",
                 "network <network-address> <subnet-mask> - Defines the network and subnet mask for the DHCP pool.",
                 "default-router <ip-address> - Specifies the default gateway for the DHCP clients.",
-                "dns-server <ip-address> - Specifies the DNS server for the DHCP clients."
+                "dns-server <ip-address> - Specifies the DNS server for the DHCP clients.",
+                "lease <days> <hours> <minutes> - Sets the lease duration for the DHCP addresses."
         });
 
-        addCategory("OSPF Configuration", new String[]{
+        addCategory(routerPanel, "Access Control Lists (ACL)", new String[]{
+                "access-list <number> permit <source> <wildcard> - Allows traffic from the specified source.",
+                "access-list <number> deny <source> <wildcard> - Blocks traffic from the specified source.",
+                "ip access-group <number> in - Applies the access list to incoming traffic on an interface.",
+                "ip access-group <number> out - Applies the access list to outgoing traffic on an interface."
+        });
+
+        addCategory(routerPanel, "OSPF Configuration", new String[]{
                 "router ospf <process-id> - Enables OSPF routing process.",
-                "router-id <router-id> - Locally significant id.",
                 "network <network> <wildcard-mask> area <area-id> - Specifies the network to be advertised in OSPF.",
-                "passive-interface <interface> - Prevents OSPF updates from being sent through an interface."
+                "passive-interface <interface> - Prevents OSPF updates from being sent through an interface.",
+                "default-information originate - Advertises a default route to OSPF neighbors."
         });
 
-        addCategory("RIP Configuration", new String[]{
+        addCategory(routerPanel, "RIP Configuration", new String[]{
                 "router rip - Enables RIP routing process.",
                 "version 2 - Sets RIP version to 2.",
                 "network <network> - Advertises the specified network in RIP.",
-                "passive-interface <interface> - Prevents OSPF updates from being sent through an interface."
+                "no auto-summary - Disables automatic summarization of networks in RIP."
         });
 
-        addCategory("HSRP Configuration", new String[]{
+        addCategory(routerPanel, "HSRP Configuration", new String[]{
                 "standby <group> ip <virtual-ip> - Configures the virtual IP address for the HSRP group.",
                 "standby <group> priority <priority> - Sets the priority for the router in the HSRP group.",
                 "standby <group> preempt - Enables preemption for the HSRP group.",
                 "standby <group> authentication <string> - Sets the authentication string for the HSRP group."
         });
 
-        addCategory("SSH Configuration", new String[]{
+        addCategory(routerPanel, "SSH Configuration", new String[]{
                 "ip domain-name <domain> - Sets the domain name for the router.",
                 "crypto key generate rsa - Generates the RSA keys for SSH.",
                 "ip ssh version 2 - Enables SSH version 2.",
@@ -74,20 +89,101 @@ public class Wiki extends JFrame {
                 "transport input ssh - Restricts VTY access to SSH."
         });
 
-        addCategory("NAT Configuration", new String[]{
+        addCategory(routerPanel, "NAT Configuration", new String[]{
                 "ip nat inside source static <private-ip> <public-ip> - Configures static NAT.",
                 "ip nat pool <name> <start-ip> <end-ip> netmask <netmask> - Defines a pool of public IP addresses for dynamic NAT.",
                 "ip nat inside source list <access-list> pool <name> - Maps an access list to the NAT pool.",
                 "access-list <number> permit <source> <wildcard> - Creates an access list to permit the source addresses."
         });
 
+        // Add Router checkbox and router panel to the main panel
+        mainPanel.add(routerCheckBox);
+        mainPanel.add(routerPanel);
+
+        // Add Switch checkbox
+        switchCheckBox = new JCheckBox("Switch");
+        switchCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Panel for switch options
+        JPanel switchPanel = new JPanel();
+        switchPanel.setLayout(new BoxLayout(switchPanel, BoxLayout.Y_AXIS));
+        switchPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        switchPanel.setVisible(false);
+
+        // Add categories and commands to the switch panel
+        addCategory(switchPanel, "Basic Configuration", new String[]{
+                "hostname <name> - Sets the hostname for the switch.",
+                "banner motd #<message># - Sets the Message of the Day banner.",
+                "no ip domain-lookup - Disables DNS lookup to prevent the switch from attempting to translate unknown commands as hostnames.",
+                "enable secret <password> - Sets the encrypted password for privileged (enable) mode access.",
+                "service password-encryption - Encrypts all passwords in the configuration file.",
+                "interface <type/number> - Enters the interface configuration mode.",
+                "ip address <address> <subnet mask> - Assigns an IP address to an interface."
+        });
+
+        addCategory(switchPanel, "VLAN Configuration", new String[]{
+                "vlan <number> - Creates a VLAN with the specified number.",
+                "name <name> - Assigns a name to the VLAN.",
+                "interface vlan <number> - Enters the VLAN interface configuration mode.",
+                "ip address <address> <subnet mask> - Assigns an IP address to a VLAN interface."
+        });
+
+        addCategory(switchPanel, "STP Configuration", new String[]{
+                "spanning-tree mode <pvst|rapid-pvst|mst> - Sets the spanning tree protocol mode.",
+                "spanning-tree vlan <vlan-id> priority <priority> - Sets the STP priority for a VLAN.",
+                "spanning-tree vlan <vlan-id> root primary - Sets the switch as the primary root for a VLAN.",
+                "spanning-tree vlan <vlan-id> root secondary - Sets the switch as the secondary root for a VLAN."
+        });
+
+        addCategory(switchPanel, "EtherChannel Configuration", new String[]{
+                "interface <type> <number> - Enters the interface configuration mode.",
+                "channel-group <number> mode <active|passive|desirable|auto> - Configures the channel group number and mode."
+        });
+
+        addCategory(switchPanel, "SSH Configuration", new String[]{
+                "ip domain-name <domain> - Sets the domain name for the switch.",
+                "crypto key generate rsa - Generates the RSA keys for SSH.",
+                "ip ssh version 2 - Enables SSH version 2.",
+                "line vty 0 4 - Enters the line configuration mode for VTY lines.",
+                "transport input ssh - Restricts VTY access to SSH."
+        });
+
+        addCategory(switchPanel, "ACL Configuration", new String[]{
+                "access-list <number> permit <source> <wildcard> - Allows traffic from the specified source.",
+                "access-list <number> deny <source> <wildcard> - Blocks traffic from the specified source.",
+                "ip access-group <number> in - Applies the access list to incoming traffic on an interface.",
+                "ip access-group <number> out - Applies the access list to outgoing traffic on an interface."
+        });
+
+        // Add Switch checkbox and switch panel to the main panel
+        mainPanel.add(switchCheckBox);
+        mainPanel.add(switchPanel);
+
         // Add scroll pane to the frame
         add(scrollPane, BorderLayout.CENTER);
+
+        routerCheckBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                routerPanel.setVisible(routerCheckBox.isSelected());
+                mainPanel.revalidate();
+                mainPanel.repaint();
+            }
+        });
+
+        switchCheckBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                switchPanel.setVisible(switchCheckBox.isSelected());
+                mainPanel.revalidate();
+                mainPanel.repaint();
+            }
+        });
 
         setVisible(true);
     }
 
-    private void addCategory(String categoryName, String[] commands) {
+    private void addCategory(JPanel parentPanel, String categoryName, String[] commands) {
         JPanel categoryPanel = new JPanel();
         categoryPanel.setLayout(new BoxLayout(categoryPanel, BoxLayout.Y_AXIS));
         categoryPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
@@ -107,16 +203,21 @@ public class Wiki extends JFrame {
             commandsPanel.add(commandLabel);
         }
 
-        categoryCheckBox.addActionListener(e -> {
-            commandsPanel.setVisible(categoryCheckBox.isSelected());
-            mainPanel.revalidate();
-            mainPanel.repaint();
+        categoryCheckBox.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                commandsPanel.setVisible(categoryCheckBox.isSelected());
+                parentPanel.revalidate();
+                parentPanel.repaint();
+            }
         });
 
         categoryPanel.add(categoryCheckBox);
         categoryPanel.add(commandsPanel);
 
-        mainPanel.add(categoryPanel);
+        parentPanel.add(categoryPanel);
     }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(Wiki::new);
+    }
 }

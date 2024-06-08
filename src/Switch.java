@@ -263,7 +263,7 @@ public class Switch extends JFrame {
         vlanPanel.add(nameOfVLAN);
         vlanPanel.add(vlanNameField);
 
-        JLabel ipLabel = new JLabel("IP: ");
+        JLabel ipLabel = new JLabel("IP and Subnetmask: ");
         vlanIPField = new JTextField(20);
         vlanIPField.setMaximumSize(new Dimension(Integer.MAX_VALUE, vlanIPField.getPreferredSize().height));
         ipLabel.setVisible(false);
@@ -271,20 +271,11 @@ public class Switch extends JFrame {
         vlanPanel.add(ipLabel);
         vlanPanel.add(vlanIPField);
 
-        JLabel cidrLabel = new JLabel("CIDR:");
-        cidrField = new JTextField(20);
-        cidrField.setMaximumSize(new Dimension(Integer.MAX_VALUE, vlanNameField.getPreferredSize().height));
-        cidrLabel.setVisible(false);
-        cidrField.setVisible(false);
-        vlanPanel.add(cidrLabel);
-        vlanPanel.add(cidrField);
-
         vlanCheckBox.addActionListener(e -> {
             boolean selected = vlanCheckBox.isSelected();
             numberOfVLAN.setVisible(selected);
             nameOfVLAN.setVisible(selected);
             ipLabel.setVisible(selected);
-            cidrLabel.setVisible(selected);
             vlanNumberField.setVisible(selected);
             vlanNameField.setVisible(selected);
             vlanIPField.setVisible(selected);
@@ -309,10 +300,6 @@ public class Switch extends JFrame {
             vlanIPField.setText("");
         });
 
-        cidrField.addActionListener(e -> {
-            overview.append("CIDR: " + cidrField.getText() + "\n");
-            cidrField.setText("");
-        });
     }
 
     private void stpConfiguration() {
