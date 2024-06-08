@@ -171,13 +171,10 @@ public class Wiki extends JFrame {
             }
         });
 
-        switchCheckBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                switchPanel.setVisible(switchCheckBox.isSelected());
-                mainPanel.revalidate();
-                mainPanel.repaint();
-            }
+        switchCheckBox.addActionListener(e -> {
+            switchPanel.setVisible(switchCheckBox.isSelected());
+            mainPanel.revalidate();
+            mainPanel.repaint();
         });
 
         setVisible(true);
@@ -203,21 +200,15 @@ public class Wiki extends JFrame {
             commandsPanel.add(commandLabel);
         }
 
-        categoryCheckBox.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                commandsPanel.setVisible(categoryCheckBox.isSelected());
-                parentPanel.revalidate();
-                parentPanel.repaint();
-            }
+        categoryCheckBox.addActionListener(e -> {
+            commandsPanel.setVisible(categoryCheckBox.isSelected());
+            parentPanel.revalidate();
+            parentPanel.repaint();
         });
 
         categoryPanel.add(categoryCheckBox);
         categoryPanel.add(commandsPanel);
 
         parentPanel.add(categoryPanel);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(Wiki::new);
     }
 }

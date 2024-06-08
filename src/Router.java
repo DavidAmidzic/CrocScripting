@@ -30,12 +30,16 @@ public class Router extends JFrame {
     private JTextField ospfRouterIdField;
     private JTextField ospfNetworkField;
     private JTextField ospfPassiveInterfaceField;
+    private JCheckBox defaultInformationOriginateCheckBox;
+
 
     /* RIP */
 
     private JTextField ripVersionField;
     private JTextField ripNetworkField;
     private JTextField ripPassiveInterfaceField;
+    private JCheckBox noAutoSummaryCheckbox;
+
 
     /* DHCP */
 
@@ -53,6 +57,8 @@ public class Router extends JFrame {
     private JTextField hsrpGroupField;
     private JTextField hsrpInterfaceField;
     private JTextField hsrpVersionField;
+
+    private JTextField hsrpIpField;
     private JTextField hsrpIpPriorityField;
 
     /* Basic Configuration */
@@ -187,7 +193,7 @@ public class Router extends JFrame {
     private String generateConfig() {
         StringBuilder commands = new StringBuilder();
 
-        //basic config
+        //Basic Configuration
         String hostname = hostnameField.getText();
         if (!hostname.isEmpty() && overview.getText().contains("Hostname: " + hostname)) {
             commands.append("hostname ").append(hostname).append("\n");
@@ -218,8 +224,10 @@ public class Router extends JFrame {
             }
 
             String ipAddress = ipAddressField.getText();
-            if (!ipAddress.isEmpty() && overview.getText().contains("IP Address: " + ipAddress)) {
+            if (!ipAddress.isEmpty() && overview.getText().contains("IP Address + Subnet Mask: " + ipAddress)) {
                 commands.append("ip address ").append(ipAddress).append("\n");
+                commands.append("no shutdown").append("\n");
+                commands.append("exit").append("\n");
             }
         }
 
@@ -257,6 +265,11 @@ public class Router extends JFrame {
             if (!ospfPassiveInterface.isEmpty() && overview.getText().contains("OSPF Passive Interface: " + ospfPassiveInterface)) {
                 commands.append("passive-interface ").append(ospfPassiveInterface).append("\n");
             }
+
+            if (defaultInformationOriginateCheckBox.isSelected()) {
+                commands.append("default-information originate").append("\n");
+            }
+            commands.append("exit").append("\n");
         }
 
 
@@ -273,10 +286,18 @@ public class Router extends JFrame {
                 commands.append("network ").append(ripNetwork).append("\n");
             }
 
+            if (noAutoSummaryCheckbox.isSelected()) {
+                commands.append("no auto-summary").append("\n");
+            }
+
             String ripPassiveInterface = ripPassiveInterfaceField.getText();
             if (!ripPassiveInterface.isEmpty() && overview.getText().contains("RIP Passive Interface: " + ripPassiveInterface)) {
                 commands.append("passive-interface ").append(ripPassiveInterface).append("\n");
             }
+            if (defaultInformationOriginateCheckBox.isSelected()) {
+                commands.append("default-information originate").append("\n");
+            }
+            commands.append("exit").append("\n");
         }
 
         if (sshCheckBox.isSelected()) {
@@ -287,7 +308,7 @@ public class Router extends JFrame {
 
             String keyLength = sshKeyLengthField.getText();
             if (!keyLength.isEmpty() && overview.getText().contains("SSH Key Length: " + keyLength)) {
-                commands.append("crypto key generate rsa modulus ").append(keyLength).append("\n");
+                commands.append("crypto key generate rsa general-keys modulus ").append(keyLength).append("\n");
             }
 
             String username = sshUsernameField.getText();
@@ -295,14 +316,16 @@ public class Router extends JFrame {
             if (!username.isEmpty() && !passwordSSH.isEmpty() &&
                     overview.getText().contains("SSH Username: " + username) &&
                     overview.getText().contains("SSH Password: " + passwordSSH)) {
-                commands.append("username ").append(username).append(" password ").append(passwordSSH).append("\n");
+                commands.append("username ").append(username).append(" secret ").append(passwordSSH).append("\n");
             }
 
             String vtyLine = sshVtyLineField.getText();
             if (!vtyLine.isEmpty() && overview.getText().contains("SSH VTY Line: " + vtyLine)) {
-                commands.append("line vty 0 ").append(vtyLine).append("\n");
-                commands.append("transport input ssh\n");
+                commands.append("line vty ").append(vtyLine).append("\n");
                 commands.append("login local\n");
+                commands.append("transport input ssh\n");
+                commands.append("ip ssh version 2\n");
+                commands.append("exit\n");
             }
         }
 
@@ -335,7 +358,7 @@ public class Router extends JFrame {
             if (!dhcpDns.isEmpty() && overview.getText().contains("DNS: " + dhcpDns)) {
                 commands.append("dns-server ").append(dhcpDns).append("\n");
             }
-
+            commands.append("exit\n");
             if (dhcpHelperCheckBox.isSelected()) {
                 String helperInterface = dhcpHelperInterfaceField.getText();
                 String helperIp = dhcpHelperIpField.getText();
@@ -344,6 +367,7 @@ public class Router extends JFrame {
                         overview.getText().contains("DHCP Helper IP Address: " + helperIp)) {
                     commands.append("interface ").append(helperInterface).append("\n");
                     commands.append("ip helper-address ").append(helperIp).append("\n");
+                    commands.append("exit\n");
                 }
             }
         }
@@ -357,22 +381,27 @@ public class Router extends JFrame {
                 if (!hsrpInterface.isEmpty() && overview.getText().contains("HSRP Interface: " + hsrpInterface)) {
                     commands.append("\ninterface ").append(hsrpInterface).append("\n");
                 }
-                commands.append("standby ").append(hsrpGroup).append("\n");
 
                 String hsrpVersion = hsrpVersionField.getText();
                 if (!hsrpVersion.isEmpty() && overview.getText().contains("HSRP Version: " + hsrpVersion)) {
                     commands.append("standby version ").append(hsrpVersion).append("\n");
                 }
 
+                String hsrpVirtualIp = hsrpIpField.getText();
+                if (!hsrpVirtualIp.isEmpty() && overview.getText().contains("HSRP Virtual IP: " + hsrpVirtualIp)) {
+                    commands.append("standby ").append(hsrpGroup).append(" ip ").append(hsrpVirtualIp).append("\n");
+                }
+
                 String hsrpIpPriority = hsrpIpPriorityField.getText();
                 if (!hsrpIpPriority.isEmpty() && overview.getText().contains("HSRP IP Priority: " + hsrpIpPriority)) {
-                    commands.append("standby ").append(hsrpGroup).append(" ip ").append(hsrpIpPriority).append("\n");
+                    commands.append("standby ").append(hsrpGroup).append(" priority ").append(hsrpIpPriority).append("\n");
                 }
 
                 if (hsrpPreemptionCheckBox.isSelected()) {
                     commands.append("standby ").append(hsrpGroup).append(" preempt\n");
                 }
             }
+            commands.append("exit").append("\n");
         }
 
         // NAT Configuration
@@ -416,7 +445,8 @@ public class Router extends JFrame {
                 commands.append("interface ").append(natInterface).append("\n");
             }
             if (!direction.isEmpty() && overview.getText().contains("Direction: " + direction)) {
-                commands.append("ip nat inside source ").append(direction).append("\n");
+                commands.append("ip nat ").append(direction).append("\n");
+                commands.append("exit").append("\n");
             }
         }
 
@@ -993,7 +1023,15 @@ public class Router extends JFrame {
         hsrpPanel.add(hsrpVersionLabel);
         hsrpPanel.add(hsrpVersionField);
 
-        JLabel hsrpIpPriorityLabel = new JLabel("IP Priority:");
+        JLabel hsrpIpLabel = new JLabel("Virtual IP:");
+        hsrpIpField = new JTextField(20);
+        hsrpIpField.setMaximumSize(new Dimension(Integer.MAX_VALUE, hsrpIpField.getPreferredSize().height));
+        hsrpIpLabel.setVisible(false);
+        hsrpIpField.setVisible(false);
+        hsrpPanel.add(hsrpIpLabel);
+        hsrpPanel.add(hsrpIpField);
+
+        JLabel hsrpIpPriorityLabel = new JLabel("Priority:");
         hsrpIpPriorityField = new JTextField(20);
         hsrpIpPriorityField.setMaximumSize(new Dimension(Integer.MAX_VALUE, hsrpIpPriorityField.getPreferredSize().height));
         hsrpIpPriorityLabel.setVisible(false);
@@ -1016,6 +1054,8 @@ public class Router extends JFrame {
             hsrpInterfaceField.setVisible(selected);
             hsrpVersionLabel.setVisible(selected);
             hsrpVersionField.setVisible(selected);
+            hsrpIpLabel.setVisible(selected);
+            hsrpIpField.setVisible(selected);
             hsrpIpPriorityLabel.setVisible(selected);
             hsrpIpPriorityField.setVisible(selected);
             hsrpPreemptionLabel.setVisible(selected);
@@ -1035,6 +1075,10 @@ public class Router extends JFrame {
 
         hsrpVersionField.addActionListener(e -> {
             overview.append("HSRP Version: " + hsrpVersionField.getText() + "\n");
+        });
+
+        hsrpIpField.addActionListener(e -> {
+            overview.append("HSRP Virtual IP: " + hsrpIpField.getText() + "\n");
         });
 
         hsrpIpPriorityField.addActionListener(e -> {
@@ -1228,6 +1272,10 @@ public class Router extends JFrame {
         ospfPanel.add(passiveInterfaceLabel);
         ospfPanel.add(ospfPassiveInterfaceField);
 
+        defaultInformationOriginateCheckBox = new JCheckBox("default-info org");
+        defaultInformationOriginateCheckBox.setVisible(false);
+        ospfPanel.add(defaultInformationOriginateCheckBox);
+
         ospfCheckBox.addActionListener(e -> {
             boolean selected = ospfCheckBox.isSelected();
             groupLabel.setVisible(selected);
@@ -1238,6 +1286,7 @@ public class Router extends JFrame {
             ospfNetworkField.setVisible(selected);
             passiveInterfaceLabel.setVisible(selected);
             ospfPassiveInterfaceField.setVisible(selected);
+            defaultInformationOriginateCheckBox.setVisible(selected);
             revalidate();
             repaint();
         });
@@ -1257,6 +1306,14 @@ public class Router extends JFrame {
 
         ospfPassiveInterfaceField.addActionListener(e -> {
             overview.append("OSPF Passive Interface: " + ospfPassiveInterfaceField.getText() + "\n");
+        });
+
+        defaultInformationOriginateCheckBox.addActionListener(e -> {
+            if (defaultInformationOriginateCheckBox.isSelected()) {
+                overview.append("OSPF: default-information originate enabled\n");
+            } else {
+                overview.append("OSPF: default-information originate disabled\n");
+            }
         });
     }
 
@@ -1291,14 +1348,24 @@ public class Router extends JFrame {
         ripPanel.add(ripPassiveInterfaceLabel);
         ripPanel.add(ripPassiveInterfaceField);
 
+        defaultInformationOriginateCheckBox = new JCheckBox("default-info org");
+        defaultInformationOriginateCheckBox.setVisible(false);
+        ripPanel.add(defaultInformationOriginateCheckBox);
+
+        noAutoSummaryCheckbox = new JCheckBox("no auto-summary");
+        noAutoSummaryCheckbox.setVisible(false);
+        ripPanel.add(noAutoSummaryCheckbox);
+
         ripCheckBox.addActionListener(e -> {
             boolean selected = ripCheckBox.isSelected();
             ripVersionLabel.setVisible(selected);
             ripVersionField.setVisible(selected);
             ripNetworkLabel.setVisible(selected);
             ripNetworkField.setVisible(selected);
+            noAutoSummaryCheckbox.setVisible(selected);
             ripPassiveInterfaceLabel.setVisible(selected);
             ripPassiveInterfaceField.setVisible(selected);
+            defaultInformationOriginateCheckBox.setVisible(selected);
             revalidate();
             repaint();
         });
@@ -1313,8 +1380,24 @@ public class Router extends JFrame {
             overview.append("RIP Network: " + ripNetworkField.getText() + "\n");
         });
 
+        noAutoSummaryCheckbox.addActionListener(e -> {
+            if (noAutoSummaryCheckbox.isSelected()) {
+                overview.append("RIP: no auto-summary enabled\n");
+            } else {
+                overview.append("RIP: no auto-summary disabled\n");
+            }
+        });
+
         ripPassiveInterfaceField.addActionListener(e -> {
             overview.append("RIP Passive Interface: " + ripPassiveInterfaceField.getText() + "\n");
+        });
+
+        defaultInformationOriginateCheckBox.addActionListener(e -> {
+            if (defaultInformationOriginateCheckBox.isSelected()) {
+                overview.append("RIP: default-information originate enabled\n");
+            } else {
+                overview.append("RIP: default-information originate disabled\n");
+            }
         });
     }
 
