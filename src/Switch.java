@@ -1,6 +1,11 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class Switch extends JFrame {
     private JCheckBox basicConfigCheckBox;
@@ -11,6 +16,8 @@ public class Switch extends JFrame {
     private JCheckBox sshCheckBox;
     private JCheckBox stpCheckBox;
     private JCheckBox etherChannelBox;
+    private JCheckBox portSecurityCheckBox;
+    private JCheckBox stickyMacCheckBox;
     private JTextField hostnameOfSwitchField;
     private JTextField bannerField;
     private JTextField enablePasswordField;
@@ -20,7 +27,7 @@ public class Switch extends JFrame {
     private JTextField vlanNumberField;
     private JTextField vlanNameField;
     private JTextField vlanIPField;
-    private JTextField cidrField;
+    private JTextField maxMacField, violationActionField, staticMacField;;
     private String[] choices = {"pvst", "rapid-pvst", "mvst"};
     private String[] choicesForEther = {"active","passive","desirable","auto"};
     private final JComboBox<String> stpModeOptions = new JComboBox<>(choices);
@@ -35,18 +42,13 @@ public class Switch extends JFrame {
     private JTextField sshUsernameField;
     private JTextField sshPasswordField;
     private JTextField sshVtyLineField;
-    private JCheckBox aclCheckBox;
-    private JTextField aclNumberField;
-    private JTextField aclNameField;
-    private JTextField aclRuleField;
-    private JTextField aclActionField;
-    private JPanel aclPanel;
     private JTextArea overview;
     private JPanel basicConfigPanel;
     private JPanel vlanPanel;
     private JPanel stpPanel;
     private JPanel etherChannelPanel;
     private JPanel sshPanel;
+    private JPanel portSecurityPanel;
 
     public Switch() {
         setTitle("Switch Configuration");
@@ -77,9 +79,9 @@ public class Switch extends JFrame {
         sshPanel = new JPanel();
         sshConfiguration();
 
-        // ACL Panel
-        aclPanel = new JPanel();
-        aclConfiguration();
+        // Port Security Panel
+        portSecurityPanel = new JPanel();
+        portSecurityConfiguration();
 
 
         // Add panels to the configuration panel
@@ -88,7 +90,7 @@ public class Switch extends JFrame {
         configPanel.add(stpPanel);
         configPanel.add(etherChannelPanel);
         configPanel.add(sshPanel);
-        configPanel.add(aclPanel);
+        configPanel.add(portSecurityPanel);
 
         // Make configPanel scrollable
         JScrollPane scrollPane = new JScrollPane(configPanel);
@@ -105,7 +107,8 @@ public class Switch extends JFrame {
         add(buttonPanel, BorderLayout.SOUTH);
         generateButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                // TODO: Implement generate action
+                String basicConfigCommands = generateConfig();
+                openCommandWindow(basicConfigCommands);
             }
         });
 
@@ -189,18 +192,15 @@ public class Switch extends JFrame {
         });
 
         hostnameOfSwitchField.addActionListener(e -> {
-            overview.append("Hostname of Switch: " + hostnameOfSwitchField.getText() + "\n");
-            hostnameOfSwitchField.setText("");
+            overview.append("Hostname: " + hostnameOfSwitchField.getText() + "\n");
         });
 
         bannerField.addActionListener(e -> {
             overview.append("Banner: " + bannerField.getText() + "\n");
-            bannerField.setText("");
         });
 
         enablePasswordField.addActionListener(e -> {
             overview.append("Enable Password: " + enablePasswordField.getText() + "\n");
-            enablePasswordField.setText("");
         });
 
         servicePasswordEncryptionCheckBox.addActionListener(e -> {
@@ -232,11 +232,9 @@ public class Switch extends JFrame {
         interfaceField.addActionListener(e -> {
             overview.append("Interface: " + interfaceField.getText() + "\n");
             interfaceFieldSave = interfaceField.getText();
-            interfaceField.setText("");
         });
         ipAddressField.addActionListener(e -> {
             overview.append("IP Address of Interface "+ interfaceFieldSave + ": " + ipAddressField.getText() + "\n");
-            ipAddressField.setText("");
         });
     }
 
@@ -279,7 +277,6 @@ public class Switch extends JFrame {
             vlanNumberField.setVisible(selected);
             vlanNameField.setVisible(selected);
             vlanIPField.setVisible(selected);
-            cidrField.setVisible(selected);
             revalidate();
             repaint();
         });
@@ -287,17 +284,14 @@ public class Switch extends JFrame {
         // Action listeners to update the overview area
         vlanNumberField.addActionListener(e -> {
             overview.append("Number of VLAN: " + vlanNumberField.getText() + "\n");
-            vlanNumberField.setText("");    
         });
 
         vlanNameField.addActionListener(e -> {
             overview.append("Name of VLAN: " + vlanNameField.getText() + "\n");
-            vlanNameField.setText("");
         });
 
         vlanIPField.addActionListener(e -> {
             overview.append("IP: " + vlanIPField.getText() + "\n");
-            vlanIPField.setText("");
         });
 
     }
@@ -371,22 +365,18 @@ public class Switch extends JFrame {
 
         vlanForPriorityField.addActionListener(e -> {
             overview.append("VLAN for Priority: " + vlanForPriorityField.getText() + "\n");
-            vlanForPriorityField.setText("");
         });
 
         vlanPriorityField.addActionListener(e -> {
             overview.append("VLAN Priority: " + vlanPriorityField.getText() + "\n");
-            vlanPriorityField.setText("");
         });
 
         vlanRootPrimaryField.addActionListener(e -> {
             overview.append("VLAN Root Primary: " + vlanRootPrimaryField.getText() + "\n");
-            vlanRootPrimaryField.setText("");
         });
 
         vlanRootSecondaryField.addActionListener(e -> {
             overview.append("VLAN Root Secondary: " + vlanRootSecondaryField.getText() + "\n");
-            vlanRootSecondaryField.setText("");
         });
     }
 
@@ -424,7 +414,6 @@ public class Switch extends JFrame {
 
         channelGroupNumberField.addActionListener(e -> {
             overview.append("Channel Group Number: " + channelGroupNumberField.getText() + "\n");
-            channelGroupNumberField.setText("");
         });
 
         etherChannelOptions.addActionListener(e -> {
@@ -497,100 +486,274 @@ public class Switch extends JFrame {
 
         sshDomainNameField.addActionListener(e -> {
             overview.append("Domain Name: " + sshDomainNameField.getText() + "\n");
-            sshDomainNameField.setText("");
         });
 
         sshKeyLengthField.addActionListener(e -> {
             overview.append("Key Length: " + sshKeyLengthField.getText() + "\n");
-            sshKeyLengthField.setText("");
         });
 
         sshUsernameField.addActionListener(e -> {
             overview.append("Username: " + sshUsernameField.getText() + "\n");
-            sshUsernameField.setText("");
         });
 
         sshPasswordField.addActionListener(e -> {
             overview.append("Password: " + sshPasswordField.getText() + "\n");
-            sshPasswordField.setText("");
         });
 
         sshVtyLineField.addActionListener(e -> {
             overview.append("VTY Line: " + sshVtyLineField.getText() + "\n");
-            sshVtyLineField.setText("");
         });
     }
 
-    private void aclConfiguration() {
-        aclPanel.setLayout(new BoxLayout(aclPanel, BoxLayout.Y_AXIS));
-        aclPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        aclCheckBox = new JCheckBox("ACL");
-        aclPanel.add(aclCheckBox);
+    private void portSecurityConfiguration() {
+        portSecurityPanel.setLayout(new BoxLayout(portSecurityPanel, BoxLayout.Y_AXIS));
+        portSecurityPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        portSecurityCheckBox = new JCheckBox("Port Security");
+        portSecurityPanel.add(portSecurityCheckBox);
 
-        JLabel aclNumberLabel = new JLabel("ACL Number:");
-        aclNumberField = new JTextField(20);
-        aclNumberField.setMaximumSize(new Dimension(Integer.MAX_VALUE, aclNumberField.getPreferredSize().height));
-        aclNumberLabel.setVisible(false);
-        aclNumberField.setVisible(false);
-        aclPanel.add(aclNumberLabel);
-        aclPanel.add(aclNumberField);
+        JLabel maxMacLabel = new JLabel("Max MAC Addresses:");
+        maxMacField = new JTextField(20);
+        maxMacField.setMaximumSize(new Dimension(Integer.MAX_VALUE, maxMacField.getPreferredSize().height));
+        maxMacLabel.setVisible(false);
+        maxMacField.setVisible(false);
+        portSecurityPanel.add(maxMacLabel);
+        portSecurityPanel.add(maxMacField);
 
-        JLabel aclNameLabel = new JLabel("ACL Name:");
-        aclNameField = new JTextField(20);
-        aclNameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, aclNameField.getPreferredSize().height));
-        aclNameLabel.setVisible(false);
-        aclNameField.setVisible(false);
-        aclPanel.add(aclNameLabel);
-        aclPanel.add(aclNameField);
+        JLabel violationActionLabel = new JLabel("Violation Action:");
+        violationActionField = new JTextField(20);
+        violationActionField.setMaximumSize(new Dimension(Integer.MAX_VALUE, violationActionField.getPreferredSize().height));
+        violationActionLabel.setVisible(false);
+        violationActionField.setVisible(false);
+        portSecurityPanel.add(violationActionLabel);
+        portSecurityPanel.add(violationActionField);
 
-        JLabel aclRuleLabel = new JLabel("ACL Rule:");
-        aclRuleField = new JTextField(20);
-        aclRuleField.setMaximumSize(new Dimension(Integer.MAX_VALUE, aclRuleField.getPreferredSize().height));
-        aclRuleLabel.setVisible(false);
-        aclRuleField.setVisible(false);
-        aclPanel.add(aclRuleLabel);
-        aclPanel.add(aclRuleField);
+        JLabel staticMacLabel = new JLabel("Static MAC Address:");
+        staticMacField = new JTextField(20);
+        staticMacField.setMaximumSize(new Dimension(Integer.MAX_VALUE, staticMacField.getPreferredSize().height));
+        staticMacLabel.setVisible(false);
+        staticMacField.setVisible(false);
+        portSecurityPanel.add(staticMacLabel);
+        portSecurityPanel.add(staticMacField);
 
-        JLabel aclActionLabel = new JLabel("ACL Action:");
-        aclActionField = new JTextField(20);
-        aclActionField.setMaximumSize(new Dimension(Integer.MAX_VALUE, aclActionField.getPreferredSize().height));
-        aclActionLabel.setVisible(false);
-        aclActionField.setVisible(false);
-        aclPanel.add(aclActionLabel);
-        aclPanel.add(aclActionField);
+        stickyMacCheckBox = new JCheckBox("Enable Sticky MAC");
+        stickyMacCheckBox.setVisible(false);
+        portSecurityPanel.add(stickyMacCheckBox);
 
-        aclCheckBox.addActionListener(e -> {
-            boolean selected = aclCheckBox.isSelected();
-            aclNumberLabel.setVisible(selected);
-            aclNameLabel.setVisible(selected);
-            aclRuleLabel.setVisible(selected);
-            aclActionLabel.setVisible(selected);
-            aclNumberField.setVisible(selected);
-            aclNameField.setVisible(selected);
-            aclRuleField.setVisible(selected);
-            aclActionField.setVisible(selected);
+        portSecurityCheckBox.addActionListener(e -> {
+            boolean selected = portSecurityCheckBox.isSelected();
+            maxMacLabel.setVisible(selected);
+            maxMacField.setVisible(selected);
+            violationActionLabel.setVisible(selected);
+            violationActionField.setVisible(selected);
+            staticMacLabel.setVisible(selected);
+            staticMacField.setVisible(selected);
+            stickyMacCheckBox.setVisible(selected);
             revalidate();
             repaint();
         });
 
-        aclNumberField.addActionListener(e -> {
-            overview.append("ACL Number: " + aclNumberField.getText() + "\n");
-            aclNumberField.setText("");
+        maxMacField.addActionListener(e -> {
+            overview.append("Max MAC Addresses: " + maxMacField.getText() + "\n");
         });
 
-        aclNameField.addActionListener(e -> {
-            overview.append("ACL Name: " + aclNameField.getText() + "\n");
-            aclNameField.setText("");
+        violationActionField.addActionListener(e -> {
+            overview.append("Violation Action: " + violationActionField.getText() + "\n");
         });
 
-        aclRuleField.addActionListener(e -> {
-            overview.append("ACL Rule: " + aclRuleField.getText() + "\n");
-            aclRuleField.setText("");
+        staticMacField.addActionListener(e -> {
+            overview.append("Static MAC Address: " + staticMacField.getText() + "\n");
         });
 
-        aclActionField.addActionListener(e -> {
-            overview.append("ACL Action: " + aclActionField.getText() + "\n");
-            aclActionField.setText("");
+        stickyMacCheckBox.addActionListener(e -> {
+            overview.append("Sticky MAC: " + (stickyMacCheckBox.isSelected() ? "Enabled" : "Disabled") + "\n");
         });
+    }
+
+
+
+    public String generateConfig() {
+        StringBuilder commands = new StringBuilder();
+
+        //Basic Configuration
+        String hostname = hostnameOfSwitchField.getText();
+        if (!hostname.isEmpty() && overview.getText().contains("Hostname: " + hostname)) {
+            commands.append("hostname ").append(hostname).append("\n");
+        }
+
+        String banner = bannerField.getText();
+        if (!banner.isEmpty() && overview.getText().contains("Banner: " + banner)) {
+            commands.append("banner motd #").append(banner).append("#\n");
+        }
+
+        if (noIPDomainLookupCheckBox.isSelected()) {
+            commands.append("no ip domain-lookup\n");
+        }
+
+        String enablePassword = enablePasswordField.getText();
+        if (!enablePassword.isEmpty() && overview.getText().contains("Enable Password: " + enablePassword)) {
+            commands.append("enable secret ").append(enablePassword).append("\n");
+        }
+
+        if (servicePasswordEncryptionCheckBox.isSelected()) {
+            commands.append("service password-encryption\n");
+        }
+
+        if (ipConfigurationCheckBox.isSelected()) {
+            String interfaceText = interfaceField.getText();
+            if (!interfaceText.isEmpty() && overview.getText().contains("Interface: " + interfaceText)) {
+                commands.append("interface ").append(interfaceText).append("\n");
+            }
+
+            String ipAddress = ipAddressField.getText();
+            if (!ipAddress.isEmpty() && overview.getText().contains("IP Address of Interface "+ interfaceFieldSave + ": " + ipAddress)) {
+                commands.append("ip address ").append(ipAddress).append("\n");
+                commands.append("no shutdown").append("\n");
+                commands.append("exit").append("\n");
+            }
+        }
+
+        // VLAN
+        String numberOfVlan = vlanNumberField.getText();
+        if (!numberOfVlan.isEmpty() && overview.getText().contains("Number of VLAN: " + numberOfVlan)) {
+            commands.append("vlan ").append(numberOfVlan).append("\n");
+        }
+        String nameOfVlan = vlanNameField.getText();
+        if (!nameOfVlan.isEmpty() && overview.getText().contains("Name of VLAN: " + nameOfVlan)) {
+            commands.append("name ").append(nameOfVlan).append("\n");
+        }
+        String ipOfVlan = vlanIPField.getText();
+        if (!ipOfVlan.isEmpty() && overview.getText().contains("IP: " + ipOfVlan)) {
+            commands.append("interface vlan ").append(numberOfVlan).append("\n");
+            commands.append("ip address ").append(ipOfVlan).append("\n");
+            commands.append("no shutdown ").append("\n");
+            commands.append("exit\n");
+
+        }
+
+        // STP
+        String stpOptions = stpModeOptions.getSelectedItem().toString();
+        if (!stpOptions.isEmpty() && overview.getText().contains("STP Mode: " + stpOptions)) {
+            commands.append("spanning-tree mode ").append(stpOptions).append("\n");
+        }
+        String vlanForSTPString = vlanForPriorityField.getText();
+        if (!vlanForSTPString.isEmpty() && overview.getText().contains("VLAN for Priority: " + vlanForSTPString)) {
+            commands.append("spanning-tree vlan ").append(vlanForSTPString).append(" priority ").append(vlanPriorityField.getText()).append("\n");
+        }
+        String vlanRootPrimaryString = vlanRootPrimaryField.getText();
+        if (!vlanRootPrimaryString.isEmpty() && overview.getText().contains("VLAN Root Primary: " + vlanRootPrimaryString)) {
+            commands.append("spanning-tree vlan ").append(vlanRootPrimaryString).append(" root primary").append("\n");
+        }
+        String vlanRootSecondaryString = vlanRootSecondaryField.getText();
+        if (!vlanRootSecondaryString.isEmpty() && overview.getText().contains("VLAN Root Secondary: " + vlanRootSecondaryString)) {
+            commands.append("spanning-tree vlan ").append(vlanForSTPString).append(" root secondary").append("\n");
+        }
+
+        // EtherChannel
+        String channelGroupNumberString = channelGroupNumberField.getText();
+        String channelGroupModeString = etherChannelOptions.getSelectedItem().toString();
+        if (!channelGroupNumberString.isEmpty() && overview.getText().contains("Channel Group Number: " + channelGroupNumberString) && !channelGroupModeString.isEmpty() && overview.getText().contains("EtherChannel Mode: " + channelGroupModeString)) {
+            commands.append("channel-group ").append(channelGroupNumberString).append(" mode ").append(channelGroupModeString).append("\n");
+        }
+
+        // SSH
+        if (sshCheckBox.isSelected()) {
+            String domainName = sshDomainNameField.getText();
+            if (!domainName.isEmpty() && overview.getText().contains("Domain Name: " + domainName)) {
+                commands.append("\nip domain-name ").append(domainName).append("\n");
+            }
+
+            String keyLength = sshKeyLengthField.getText();
+            if (!keyLength.isEmpty() && overview.getText().contains("Key Length: " + keyLength)) {
+                commands.append("crypto key generate rsa general-keys modulus ").append(keyLength).append("\n");
+            }
+
+            String username = sshUsernameField.getText();
+            String passwordSSH = sshPasswordField.getText();
+            if (!username.isEmpty() && !passwordSSH.isEmpty() &&
+                    overview.getText().contains("Username: " + username) &&
+                    overview.getText().contains("Password: " + passwordSSH)) {
+                commands.append("username ").append(username).append(" secret ").append(passwordSSH).append("\n");
+            }
+
+            String vtyLine = sshVtyLineField.getText();
+            if (!vtyLine.isEmpty() && overview.getText().contains("VTY Line: " + vtyLine)) {
+                commands.append("line vty ").append(vtyLine).append("\n");
+                commands.append("login local\n");
+                commands.append("transport input ssh\n");
+                commands.append("ip ssh version 2\n");
+                commands.append("exit\n");
+            }
+        }
+
+        // Port Security Configuration
+        if (portSecurityCheckBox.isSelected()) {
+            String maxMac = maxMacField.getText();
+            String violationAction = violationActionField.getText();
+            String staticMac = staticMacField.getText();
+            boolean stickyMac = stickyMacCheckBox.isSelected();
+
+            if (!maxMac.isEmpty() && overview.getText().contains("Max MAC Addresses: " + maxMac)) {
+                commands.append("switchport port-security maximum ").append(maxMac).append("\n");
+            }
+
+            if (!violationAction.isEmpty() && overview.getText().contains("Violation Action: " + violationAction)) {
+                commands.append("switchport port-security violation ").append(violationAction).append("\n");
+            }
+
+            if (!staticMac.isEmpty() && overview.getText().contains("Static MAC Address: " + staticMac)) {
+                commands.append("switchport port-security mac-address ").append(staticMac).append("\n");
+            }
+
+            if (stickyMac && overview.getText().contains("Sticky MAC: Enabled")) {
+                commands.append("switchport port-security mac-address sticky\n");
+            }
+
+            commands.append("switchport port-security\n");
+        }
+        return commands.toString();
+
+    }
+    private void openCommandWindow(String commands) {
+        JFrame commandFrame = new JFrame("Generated Commands");
+        commandFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        commandFrame.setSize(500, 400);
+
+        JTextArea commandArea = new JTextArea(commands);
+        commandArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(commandArea);
+
+        JButton copyButton = new JButton("Copy");
+        copyButton.addActionListener(e -> {
+            StringSelection stringSelection = new StringSelection(commands);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(stringSelection, null);
+        });
+
+        //Save-As Button
+        JButton saveButton = new JButton("Save");
+        saveButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Specify a file to save");
+            int userSelection = fileChooser.showSaveDialog(commandFrame);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                try (FileWriter fileWriter = new FileWriter(fileToSave)) {
+                    fileWriter.write(commands);
+                    JOptionPane.showMessageDialog(commandFrame, "File has been saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(commandFrame, "An error occurred while saving the file.", "Error", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(copyButton);
+        buttonPanel.add(saveButton);
+
+        commandFrame.getContentPane().add(scrollPane, BorderLayout.CENTER);
+        commandFrame.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+        commandFrame.setVisible(true);
     }
 }

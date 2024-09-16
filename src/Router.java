@@ -300,6 +300,7 @@ public class Router extends JFrame {
             commands.append("exit").append("\n");
         }
 
+        // SSH Config
         if (sshCheckBox.isSelected()) {
             String domainName = sshDomainNameField.getText();
             if (!domainName.isEmpty() && overview.getText().contains("SSH Domain Name: " + domainName)) {

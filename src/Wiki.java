@@ -148,11 +148,12 @@ public class Wiki extends JFrame {
                 "transport input ssh - Restricts VTY access to SSH."
         });
 
-        addCategory(switchPanel, "ACL Configuration", new String[]{
-                "access-list <number> permit <source> <wildcard> - Allows traffic from the specified source.",
-                "access-list <number> deny <source> <wildcard> - Blocks traffic from the specified source.",
-                "ip access-group <number> in - Applies the access list to incoming traffic on an interface.",
-                "ip access-group <number> out - Applies the access list to outgoing traffic on an interface."
+        addCategory(switchPanel, "Port-Security", new String[]{
+                "switchport port-security - Enables port security on the interface.",
+                "switchport port-security maximum <value> - Sets the maximum number of MAC addresses allowed on the port.",
+                "switchport port-security violation <action> - Configures the action to take when a security violation occurs (protect, restrict, or shutdown).",
+                "switchport port-security mac-address sticky - Enables sticky learning of MAC addresses.",
+                "switchport port-security mac-address <mac-address> - Configures a static secure MAC address on the port."
         });
 
         // Add Switch checkbox and switch panel to the main panel
